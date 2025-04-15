@@ -1,0 +1,4 @@
+File,Function,LOC,SLOC-P,SLOC-L,MVG,BLOC,C&SLOC,CLOC,CWORD
+E:\ERP\erp\lib\main.dart,main(),3,3,3,0,0,0,0,0,
+E:\ERP\erp\lib\features\auth\presentation\purchase\debitnote.dart,"_showInvoiceDetailsPopup( BuildContext context, DebitNote invoice, Map<int, String> productNames, Map<int, String> supplierNames, )",301,289,20,4,5,0,7,14,
+E:\ERP\erp\test\widget_test.dart,main(),17,10,10,0,3,0,4,28,
