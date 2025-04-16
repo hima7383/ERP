@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:erp/Core/widgets/modern_loading_overlay.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
@@ -24,112 +25,127 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        scrolledUnderElevation: 0.0,
-        title: const Text(
-          'Purchase Invoices',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-          ),
-        ),
-        centerTitle: false,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: BlocListener<PurchaseInvoiceCubit, PurchaseInvoiceState>(
-        listener: (context, state) {
-          if (state is PurchaseInvoiceLoaded && state.selectedInvoice != null) {
-            _showInvoiceDetailsPopup(context, state.selectedInvoice!,
-                state.productNames, state.supplierNames);
-          }
-        },
-        child: Column(
-          children: [
-            // Modern Search Bar
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Search by ID, Amount, Status, or Date',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
-                  filled: true,
-                  fillColor: Colors.grey[900],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 16,
-                  ),
-                ),
-                onChanged: (query) {
-                  context
-                      .read<PurchaseInvoiceCubit>()
-                      .searchPurchaseInvoices(query);
-                },
+    return BlocConsumer<PurchaseInvoiceCubit, PurchaseInvoiceState>(
+      listener: (context, state) {
+        if (state is PurchaseInvoiceError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        }
+        if (state is PurchaseInvoiceLoaded && state.selectedInvoice != null) {
+          _showInvoiceDetailsPopup(context, state.selectedInvoice!,
+              state.productNames, state.supplierNames);
+          context.read<PurchaseInvoiceCubit>().resetSelectedInvoice();
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            scrolledUnderElevation: 0.0,
+            title: const Text(
+              'Purchase Invoices',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
               ),
             ),
-            Expanded(
-              child: BlocBuilder<PurchaseInvoiceCubit, PurchaseInvoiceState>(
-                builder: (context, state) {
-                  if (state is PurchaseInvoiceLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                      ),
-                    );
-                  } else if (state is PurchaseInvoiceError) {
-                    return Center(
-                      child: Text(
-                        state.message,
-                        style: const TextStyle(color: Colors.redAccent),
-                      ),
-                    );
-                  } else if (state is PurchaseInvoiceLoaded) {
-                    final invoices = state.filteredInvoices;
-                    if (invoices.isEmpty) {
-                      return Center(
+            centerTitle: false,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: _buildBody(context, state),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, PurchaseInvoiceState state) {
+    if (state is PurchaseInvoiceLoading) {
+      return const Center(
+          child: CircularProgressIndicator(color: Colors.white));
+    } else if (state is PurchaseInvoiceError) {
+      return Center(
+        child: Text(
+          state.message,
+          style: const TextStyle(color: Colors.redAccent),
+        ),
+      );
+    } else if (state is PurchaseInvoiceLoadingById ||
+        state is PurchaseInvoiceLoaded) {
+      final invoices = (state is PurchaseInvoiceLoaded)
+          ? state.filteredInvoices
+          : (state as PurchaseInvoiceLoadingById).previousState
+                  is PurchaseInvoiceLoaded
+              ? (state.previousState as PurchaseInvoiceLoaded).filteredInvoices
+              : [];
+
+      return Stack(
+        children: [
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Search by ID, Amount, Status, or Date',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                    filled: true,
+                    fillColor: Colors.grey[900],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
+                  ),
+                  onChanged: (query) {
+                    context
+                        .read<PurchaseInvoiceCubit>()
+                        .searchPurchaseInvoices(query);
+                  },
+                ),
+              ),
+              Expanded(
+                child: invoices.isEmpty
+                    ? Center(
                         child: Text(
                           'No purchase invoices found',
                           style: TextStyle(color: Colors.grey[400]),
                         ),
-                      );
-                    }
-                    return RefreshIndicator(
-                      onRefresh: () async {
-                        await context
-                            .read<PurchaseInvoiceCubit>()
-                            .fetchPurchaseInvoices();
-                      },
-                      child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: invoices.length,
-                        separatorBuilder: (context, index) => const Gap(8),
-                        itemBuilder: (context, index) {
-                          final invoice = invoices[index];
-                          return _InvoiceCard(invoice: invoice);
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          await context
+                              .read<PurchaseInvoiceCubit>()
+                              .fetchPurchaseInvoices();
                         },
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: invoices.length,
+                          separatorBuilder: (context, index) => const Gap(8),
+                          itemBuilder: (context, index) {
+                            final invoice = invoices[index];
+                            return _InvoiceCard(invoice: invoice);
+                          },
+                        ),
                       ),
-                    );
-                  }
-                  return Center(
-                    child: Text(
-                      'No data found',
-                      style: TextStyle(color: Colors.grey[400]),
-                    ),
-                  );
-                },
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+          if (state is PurchaseInvoiceLoadingById) const ModernLoadingOverlay(),
+        ],
+      );
+    }
+    return Center(
+      child: Text(
+        'No data available',
+        style: TextStyle(color: Colors.grey[400]),
       ),
     );
   }

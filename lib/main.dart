@@ -44,7 +44,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
-}
+} 
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

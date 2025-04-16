@@ -1,16 +1,18 @@
 import 'package:erp/features/auth/data/entities/purchase/purchase_invoices.dart';
-
 import 'package:erp/features/auth/data/repos/purchase/purchase_repo.dart';
-
 import 'package:erp/features/auth/data/repos/purchase/supplier_repo.dart';
-
 import 'package:erp/features/auth/data/repos/stock/product_repo.dart';
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 abstract class PurchaseInvoiceState {}
 
 class PurchaseInvoiceLoading extends PurchaseInvoiceState {}
+
+class PurchaseInvoiceLoadingById extends PurchaseInvoiceState {
+  final PurchaseInvoiceLoaded? previousState;
+
+  PurchaseInvoiceLoadingById([this.previousState]);
+} // New loading state for fetching by ID
 
 class PurchaseInvoiceError extends PurchaseInvoiceState {
   final String message;
@@ -20,13 +22,9 @@ class PurchaseInvoiceError extends PurchaseInvoiceState {
 
 class PurchaseInvoiceLoaded extends PurchaseInvoiceState {
   final List<PurchaseInvoice> invoices;
-
   final List<PurchaseInvoice> filteredInvoices;
-
   final PurchaseInvoice? selectedInvoice; // Store selected invoice separately
-
   final Map<int, String> productNames;
-
   final Map<int, String> supplierNames;
 
   PurchaseInvoiceLoaded(
@@ -40,7 +38,6 @@ class PurchaseInvoiceLoaded extends PurchaseInvoiceState {
 
 class PurchaseInvoiceCubit extends Cubit<PurchaseInvoiceState> {
   final PurchaseInvoiceRepository _repository;
-
   List<PurchaseInvoice> _allInvoices = [];
 
   PurchaseInvoiceCubit(this._repository) : super(PurchaseInvoiceLoading());
@@ -52,7 +49,6 @@ class PurchaseInvoiceCubit extends Cubit<PurchaseInvoiceState> {
         _allInvoices,
         productNames: {},
       ));
-
       return;
     }
 
@@ -60,7 +56,6 @@ class PurchaseInvoiceCubit extends Cubit<PurchaseInvoiceState> {
 
     try {
       _allInvoices = await _repository.fetchPurchaseInvoices();
-
       emit(PurchaseInvoiceLoaded(
         supplierNames: {},
         _allInvoices,
@@ -74,16 +69,11 @@ class PurchaseInvoiceCubit extends Cubit<PurchaseInvoiceState> {
   void resetSelectedInvoice() {
     if (state is PurchaseInvoiceLoaded) {
       final currentState = state as PurchaseInvoiceLoaded;
-
       emit(PurchaseInvoiceLoaded(
         supplierNames: {},
-
         currentState.invoices,
-
         filteredInvoices: currentState.filteredInvoices,
-
         selectedInvoice: null,
-
         productNames: {}, // Reset selected invoice
       ));
     }
@@ -92,15 +82,11 @@ class PurchaseInvoiceCubit extends Cubit<PurchaseInvoiceState> {
   Future<Map<int, String>> fetchProductNamesForInvoice(
       PurchaseInvoice invoice) async {
     final productNames = <int, String>{};
-
     final productRepo = ProductRepository();
 
     for (var item in invoice.items) {
       try {
         final product = await productRepo.fetchProductById(item.productId);
-
-        // Use ProductDetailEntity to get the product name
-
         productNames[item.productId] = product.productName;
       } catch (e) {
         productNames[item.productId] = 'Product #${item.productId}'; // Fallback
@@ -113,15 +99,12 @@ class PurchaseInvoiceCubit extends Cubit<PurchaseInvoiceState> {
   Future<Map<int, String>> fetchsupplierNamesForInvoice(
       PurchaseInvoice invoice) async {
     final supplierNames = <int, String>{};
-
     final supplierRepo = SupplierRepository();
 
     for (var item in invoice.items) {
       print(item);
-
       try {
         final supplier = await supplierRepo.fetchSuppliers();
-
         for (var supp in supplier) {
           if (supp.supplierId == invoice.supplierId) {
             supplierNames[invoice.supplierId] = supp.supplierName;
@@ -129,7 +112,6 @@ class PurchaseInvoiceCubit extends Cubit<PurchaseInvoiceState> {
         }
       } catch (e) {
         print("Something went wrong: $e"); // Debug: Print the error
-
         supplierNames[invoice.supplierId] =
             'Supplier #${invoice.supplierId}'; // Fallback
       }
@@ -140,10 +122,8 @@ class PurchaseInvoiceCubit extends Cubit<PurchaseInvoiceState> {
 
   void searchPurchaseInvoices(String query) {
     resetSelectedInvoice();
-
     if (state is PurchaseInvoiceLoaded) {
       final currentState = state as PurchaseInvoiceLoaded;
-
       final filteredInvoices = query.isEmpty
           ? _allInvoices
           : _allInvoices
@@ -157,49 +137,35 @@ class PurchaseInvoiceCubit extends Cubit<PurchaseInvoiceState> {
 
       emit(PurchaseInvoiceLoaded(
         productNames: {},
-
         supplierNames: {},
-
         _allInvoices,
-
         filteredInvoices: filteredInvoices,
-
         selectedInvoice: currentState.selectedInvoice, // Keep selected invoice
       ));
     }
   }
 
   Future<void> fetchPurchaseInvoiceById(int id) async {
+    if (state is! PurchaseInvoiceLoaded) return;
+
+    final currentState = state as PurchaseInvoiceLoaded;
+    emit(PurchaseInvoiceLoadingById(currentState));
+
     try {
       final fetchedInvoice = await _repository.fetchPurchaseInvoiceById(id);
-
       final productNames = await fetchProductNamesForInvoice(fetchedInvoice);
-
       final supplierNames = await fetchsupplierNamesForInvoice(fetchedInvoice);
 
-      //print('Product Names: $productNames');
-
-      if (state is PurchaseInvoiceLoaded) {
-        final currentState = state as PurchaseInvoiceLoaded;
-
-        // ✅ Keep the original list and update only the selected invoice
-
-        emit(PurchaseInvoiceLoaded(
-          supplierNames: supplierNames,
-
-          currentState.invoices,
-
-          filteredInvoices: currentState.filteredInvoices,
-
-          selectedInvoice: fetchedInvoice,
-
-          productNames: productNames,
-
-          // Store the fetched invoice separately
-        ));
-      }
+      emit(PurchaseInvoiceLoaded(
+        currentState.invoices,
+        filteredInvoices: currentState.filteredInvoices,
+        selectedInvoice: fetchedInvoice,
+        productNames: productNames,
+        supplierNames: supplierNames,
+      ));
     } catch (e) {
-      emit(PurchaseInvoiceError('Failed to load purchase invoice: $e'));
+      emit(PurchaseInvoiceError('Failed to load invoice: $e'));
+      emit(currentState); // Revert to previous state
     }
   }
 }
