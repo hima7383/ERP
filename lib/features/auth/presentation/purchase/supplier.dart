@@ -1,3 +1,4 @@
+import 'package:erp/Core/widgets/modern_loading_overlay.dart';
 import 'package:erp/features/auth/data/entities/purchase/supplier.dart';
 import 'package:erp/features/auth/logic/purchase/supplier_cubit.dart';
 import 'package:flutter/material.dart';
@@ -21,12 +22,11 @@ class _SupplierScreenState extends State<SupplierScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // Dark background
+      backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         scrolledUnderElevation: 0.0,
         title: const Text(
-          // Modern AppBar title style
           'Suppliers',
           style: TextStyle(
             color: Colors.white,
@@ -34,103 +34,102 @@ class _SupplierScreenState extends State<SupplierScreen> {
             fontSize: 20,
           ),
         ),
-        centerTitle: false, // Left-align title
-        iconTheme: const IconThemeData(color: Colors.white), // White icons
+        centerTitle: false,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: BlocListener<SupplierCubit, SupplierState>(
+      body: BlocConsumer<SupplierCubit, SupplierState>(
         listener: (context, state) {
-          // Ensure listening for the correct state that includes selectedSupplier
           if (state is SupplierListLoaded && state.selectedSupplier != null) {
             _showSupplierDetailsPopup(context, state.selectedSupplier!);
+            context.read<SupplierCubit>().resetSelectedSupplier();
           }
         },
-        child: Column(
-          children: [
-            // Modern Search Bar
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                style: const TextStyle(color: Colors.white), // White input text
-                decoration: InputDecoration(
-                  hintText: 'Search suppliers...', // Updated hint text
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
-                  filled: true,
-                  fillColor: Colors.grey[900], // Dark fill color
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12), // Rounded corners
-                    borderSide: BorderSide.none, // No border line
+        builder: (context, state) {
+          return _buildBody(context, state);
+        },
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, SupplierState state) {
+    if (state is SupplierLoading) {
+      return const Center(
+          child: CircularProgressIndicator(color: Colors.white));
+    } else if (state is SupplierError) {
+      return Center(
+        child: Text(
+          state.message,
+          style: const TextStyle(color: Colors.redAccent),
+        ),
+      );
+    } else if (state is SupplierLoadingById || state is SupplierListLoaded) {
+      final suppliers = (state is SupplierListLoaded)
+          ? state.filteredSuppliers
+          : (state as SupplierLoadingById).previousState is SupplierListLoaded
+              ? (state.previousState as SupplierListLoaded).filteredSuppliers
+              : [];
+
+      return Stack(
+        children: [
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Search by name, email, or phone',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                    filled: true,
+                    fillColor: Colors.grey[900],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 16,
-                  ),
+                  onChanged: (query) {
+                    context.read<SupplierCubit>().searchSuppliers(query);
+                  },
                 ),
-                onChanged: (query) {
-                  context.read<SupplierCubit>().searchSuppliers(query);
-                },
               ),
-            ),
-            Expanded(
-              child: BlocBuilder<SupplierCubit, SupplierState>(
-                builder: (context, state) {
-                  if (state is SupplierLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: Colors.white, // Themed loading indicator
-                      ),
-                    );
-                  } else if (state is SupplierError) {
-                    return Center(
-                      child: Text(
-                        state.message,
-                        style: const TextStyle(
-                            color: Colors.redAccent), // Themed error text
-                      ),
-                    );
-                  } else if (state is SupplierListLoaded) {
-                    final suppliers = state.filteredSuppliers;
-                    if (suppliers.isEmpty) {
-                      return Center(
+              Expanded(
+                child: suppliers.isEmpty
+                    ? Center(
                         child: Text(
                           'No suppliers found',
-                          style: TextStyle(
-                              color: Colors.grey[400]), // Themed empty text
+                          style: TextStyle(color: Colors.grey[400]),
                         ),
-                      );
-                    }
-                    // Use ListView.separated with the custom card
-                    return RefreshIndicator(
-                      onRefresh: () async {
-                        // Refresh suppliers when pulled down
-                        context.read<SupplierCubit>().fetchSuppliers();
-                      },
-                      child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16), // List padding
-                        itemCount: suppliers.length,
-                        separatorBuilder: (context, index) =>
-                            const Gap(8), // Consistent spacing
-                        itemBuilder: (context, index) {
-                          final supplier = suppliers[index];
-                          // Use the new custom card widget
-                          return _SupplierCard(supplier: supplier);
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          await context.read<SupplierCubit>().fetchSuppliers();
                         },
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: suppliers.length,
+                          separatorBuilder: (context, index) => const Gap(8),
+                          itemBuilder: (context, index) {
+                            final supplier = suppliers[index];
+                            return _SupplierCard(supplier: supplier);
+                          },
+                        ),
                       ),
-                    );
-                  }
-                  // Default/fallback state
-                  return Center(
-                    child: Text(
-                      'No data found',
-                      style: TextStyle(color: Colors.grey[400]),
-                    ),
-                  );
-                },
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+          if (state is SupplierLoadingById) const ModernLoadingOverlay(),
+        ],
+      );
+    }
+    return Center(
+      child: Text(
+        'No data available',
+        style: TextStyle(color: Colors.grey[400]),
       ),
     );
   }

@@ -1,4 +1,3 @@
-
 import 'package:erp/features/auth/data/entities/purchase/supplier.dart';
 import 'package:erp/features/auth/data/repos/purchase/supplier_repo.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,6 +10,11 @@ class SupplierError extends SupplierState {
   final String message;
   SupplierError(this.message);
 }
+
+class SupplierLoadingById extends SupplierState {
+  final SupplierListLoaded? previousState;
+  SupplierLoadingById([this.previousState]);
+} // New loading state for fetching by ID
 
 class SupplierListLoaded extends SupplierState {
   final List<Supplier> suppliers;
@@ -35,7 +39,7 @@ class SupplierCubit extends Cubit<SupplierState> {
       emit(SupplierListLoaded(_allSuppliers));
       return;
     }
-    
+
     emit(SupplierLoading());
     try {
       _allSuppliers = await _repository.fetchSuppliers();
@@ -65,7 +69,9 @@ class SupplierCubit extends Cubit<SupplierState> {
           : _allSuppliers
               .where((supplier) =>
                   supplier.supplierId.toString().contains(query) ||
-                  supplier.supplierName.toLowerCase().contains(query.toLowerCase()) ||
+                  supplier.supplierName
+                      .toLowerCase()
+                      .contains(query.toLowerCase()) ||
                   supplier.accountId.toString().contains(query))
               .toList();
       emit(SupplierListLoaded(
@@ -77,22 +83,16 @@ class SupplierCubit extends Cubit<SupplierState> {
   }
 
   Future<void> fetchSupplierById(int id) async {
+    if (state is! SupplierListLoaded) return;
+    final currentState = state as SupplierListLoaded;
+    emit(SupplierLoadingById(currentState)); // Emit loading state
     try {
       final fetchedSupplier = await _repository.fetchSupplierById(id);
-      
-      if (state is SupplierListLoaded) {
-        final currentState = state as SupplierListLoaded;
-        emit(SupplierListLoaded(
-          currentState.suppliers,
-          filteredSuppliers: currentState.filteredSuppliers,
-          selectedSupplier: fetchedSupplier,
-        ));
-      } else {
-        emit(SupplierListLoaded(
-          _allSuppliers,
-          selectedSupplier: fetchedSupplier,
-        ));
-      }
+      emit(SupplierListLoaded(
+        currentState.suppliers,
+        filteredSuppliers: currentState.filteredSuppliers,
+        selectedSupplier: fetchedSupplier,
+      ));
     } catch (e) {
       emit(SupplierError('Failed to load supplier details: $e'));
     }

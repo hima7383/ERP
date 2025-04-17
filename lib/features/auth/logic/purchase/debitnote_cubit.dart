@@ -13,6 +13,11 @@ class DebitnoteCubitError extends DebitnoteCubitState {
   DebitnoteCubitError(this.message);
 }
 
+class DebitnoteCubitLoadingById extends DebitnoteCubitState {
+  final DebitnoteCubitLoaded? previousState;
+  DebitnoteCubitLoadingById([this.previousState]);
+} // New loading state for fetching by ID
+
 class DebitnoteCubitLoaded extends DebitnoteCubitState {
   final List<DebitNote> invoices;
   final List<DebitNote> filteredInvoices;
@@ -37,13 +42,15 @@ class DebitnoteCubit extends Cubit<DebitnoteCubitState> {
 
   Future<void> fetchDebitnoteCubits() async {
     if (_allInvoices.isNotEmpty) {
-      emit(DebitnoteCubitLoaded(_allInvoices, productNames: {}, supplierNames: {}));
+      emit(DebitnoteCubitLoaded(_allInvoices,
+          productNames: {}, supplierNames: {}));
       return;
     }
     emit(DebitnoteCubitLoading());
     try {
       _allInvoices = await _repository.fetchDebitnoteRepos();
-      emit(DebitnoteCubitLoaded(_allInvoices, productNames: {}, supplierNames: {}));
+      emit(DebitnoteCubitLoaded(_allInvoices,
+          productNames: {}, supplierNames: {}));
     } catch (e) {
       emit(DebitnoteCubitError('Failed to load purchase invoices: $e'));
     }
@@ -53,7 +60,7 @@ class DebitnoteCubit extends Cubit<DebitnoteCubitState> {
     if (state is DebitnoteCubitLoaded) {
       final currentState = state as DebitnoteCubitLoaded;
       emit(DebitnoteCubitLoaded(
-         productNames: {}, supplierNames: {},
+        productNames: {}, supplierNames: {},
         currentState.invoices,
         filteredInvoices: currentState.filteredInvoices,
         selectedInvoice: null, // Reset selected invoice
@@ -73,7 +80,7 @@ class DebitnoteCubit extends Cubit<DebitnoteCubitState> {
                   invoice.totalAmount.toString().contains(query))
               .toList();
       emit(DebitnoteCubitLoaded(
-         productNames: {}, supplierNames: {},
+        productNames: {}, supplierNames: {},
         _allInvoices,
         filteredInvoices: filteredInvoices,
         selectedInvoice: currentState.selectedInvoice, // Keep selected invoice
@@ -83,29 +90,29 @@ class DebitnoteCubit extends Cubit<DebitnoteCubitState> {
 
   Future<void> fetchDebitnoteCubitById(int id) async {
     print('Fetching invoice by ID: $id');
-
+    if (state is! DebitnoteCubitLoaded) return;
+    final currentState = state as DebitnoteCubitLoaded;
+    emit(DebitnoteCubitLoadingById(currentState));
     try {
       final fetchedInvoice = await _repository.fetchDebitnoteRepoById(id);
-
-      if (state is DebitnoteCubitLoaded) {
-        final currentState = state as DebitnoteCubitLoaded;
-         final productNames = await fetchProductNamesForInvoice(fetchedInvoice);
+      final productNames = await fetchProductNamesForInvoice(fetchedInvoice);
       final supplierNames = await fetchsupplierNamesForInvoice(fetchedInvoice);
 
-        // ✅ Keep the original list and update only the selected invoice
-        emit(DebitnoteCubitLoaded(
-          productNames: productNames,
-          supplierNames: supplierNames,
-          currentState.invoices,
-          filteredInvoices: currentState.filteredInvoices,
-          selectedInvoice:
-              fetchedInvoice, // Store the fetched invoice separately
-        ));
-      }
+      // ✅ Keep the original list and update only the selected invoice
+      emit(DebitnoteCubitLoaded(
+        productNames: productNames,
+        supplierNames: supplierNames,
+        currentState.invoices,
+        filteredInvoices: currentState.filteredInvoices,
+        selectedInvoice: fetchedInvoice, // Store the fetched invoice separately
+      ));
     } catch (e) {
-      emit(DebitnoteCubitError('Failed to load purchase invoice: $e'));
+      emit(DebitnoteCubitError(
+          'Failed to load purchase invoice: $e')); // Revert to previous state
+      emit(currentState);
     }
   }
+
   Future<Map<int, String>> fetchsupplierNamesForInvoice(
       DebitNote invoice) async {
     final supplierNames = <int, String>{};
@@ -129,6 +136,7 @@ class DebitnoteCubit extends Cubit<DebitnoteCubitState> {
 
     return supplierNames;
   }
+
   Future<Map<int, String>> fetchProductNamesForInvoice(
       DebitNote invoice) async {
     final productNames = <int, String>{};
@@ -149,5 +157,4 @@ class DebitnoteCubit extends Cubit<DebitnoteCubitState> {
 
     return productNames;
   }
-
 }
