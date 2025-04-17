@@ -1,3 +1,4 @@
+import 'package:erp/Core/widgets/modern_loading_overlay.dart';
 import 'package:erp/features/auth/data/entities/sales/quotation_entity.dart';
 import 'package:erp/features/auth/logic/sales/quotation_cubit.dart';
 import 'package:flutter/material.dart';
@@ -21,122 +22,137 @@ class _QuotationScreenState extends State<QuotationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black, // Dark background
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        scrolledUnderElevation: 0.0,
-        title: const Text(
-          // Modern AppBar title style
-          'Quotations',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-          ),
-        ),
-        centerTitle: false, // Left-align title
-        iconTheme: const IconThemeData(color: Colors.white), // White icons
-      ),
-      body: BlocListener<QuotationCubit, QuotationState>(
-        listener: (context, state) {
-          if (state is QuotationLoaded && state.selectedQuotation != null) {
-            context.read<QuotationCubit>().resetSelectedQuotation();
-            // Show the modernized popup
-            _showQuotationDetailsPopup(context, state.selectedQuotation!,
-                state.productNames, state.customerNames);
-            // Reset selection immediately after triggering popup to prevent re-showing
-          }
-        },
-        child: Column(
-          children: [
-            // Modern Search Bar
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Search quotations...', // Updated hint text
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
-                  filled: true,
-                  fillColor: Colors.grey[900], // Dark fill
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 16,
-                  ),
-                ),
-                onChanged: (query) {
-                  context.read<QuotationCubit>().searchQuotations(query);
-                },
+    return BlocConsumer<QuotationCubit, QuotationState>(
+      listener: (context, state) {
+        if (state is QuotationError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        }
+        if (state is QuotationLoaded && state.selectedQuotation != null) {
+          _showQuotationDetailsPopup(
+            context,
+            state.selectedQuotation!,
+            state.productNames,
+            state.customerNames,
+          );
+          context.read<QuotationCubit>().resetSelectedQuotation();
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            scrolledUnderElevation: 0.0,
+            title: const Text(
+              'Quotations',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
               ),
             ),
-            Expanded(
-              child: BlocBuilder<QuotationCubit, QuotationState>(
-                builder: (context, state) {
-                  if (state is QuotationLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                          color: Colors.white), // Themed
-                    );
-                  } else if (state is QuotationError) {
-                    return Center(
-                      child: Text(
-                        state.message,
-                        style:
-                            const TextStyle(color: Colors.redAccent), // Themed
-                      ),
-                    );
-                  } else if (state is QuotationLoaded) {
-                    final quotations = state.filteredQuotations;
-                    if (quotations.isEmpty) {
-                      return Center(
+            centerTitle: false,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: _buildBody(context, state),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, QuotationState state) {
+    if (state is QuotationLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    } else if (state is QuotationError) {
+      return Center(
+        child: Text(
+          state.message,
+          style: const TextStyle(color: Colors.redAccent),
+        ),
+      );
+    } else if (state is QuotationLoadingById || state is QuotationLoaded) {
+      final quotations = (state is QuotationLoaded)
+          ? state.filteredQuotations
+          : (state as QuotationLoadingById).previousState is QuotationLoaded
+              ? (state.previousState as QuotationLoaded).filteredQuotations
+              : [];
+
+      return Stack(
+        children: [
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Search quotations...',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                    filled: true,
+                    fillColor: Colors.grey[900],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
+                  ),
+                  onChanged: (query) {
+                    context.read<QuotationCubit>().searchQuotations(query);
+                  },
+                ),
+              ),
+              Expanded(
+                child: quotations.isEmpty
+                    ? Center(
                         child: Text(
                           'No quotations found',
-                          style: TextStyle(color: Colors.grey[400]), // Themed
+                          style: TextStyle(color: Colors.grey[400]),
                         ),
-                      );
-                    }
-                    // Use ListView.separated with the custom card
-                    return RefreshIndicator(
-                      onRefresh: () async {
-                        // Trigger a refresh action in the cubit
-                        context.read<QuotationCubit>().fetchQuotations();
-                      },
-                      child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: quotations.length,
-                        separatorBuilder: (context, index) => const Gap(8),
-                        itemBuilder: (context, index) {
-                          final quotation = quotations[index];
-                          final customerName =
-                              state.customerNames[quotation.customerId] ??
-                                  'Customer ${quotation.customerId}';
-                          // Use the new custom card widget
-                          return _QuotationCard(
-                            quotation: quotation,
-                            customerName: customerName,
-                          );
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          await context
+                              .read<QuotationCubit>()
+                              .fetchQuotations();
                         },
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: quotations.length,
+                          separatorBuilder: (context, index) => const Gap(8),
+                          itemBuilder: (context, index) {
+                            final quotation = quotations[index];
+                            final customerName = (state is QuotationLoaded)
+                                ? state.customerNames[quotation.customerId] ??
+                                    'Customer ${quotation.customerId}'
+                                : 'Loading...';
+
+                            return _QuotationCard(
+                              quotation: quotation,
+                              customerName: customerName,
+                            );
+                          },
+                        ),
                       ),
-                    );
-                  }
-                  // Default/fallback state
-                  return Center(
-                    child: Text(
-                      'No data available',
-                      style: TextStyle(color: Colors.grey[400]),
-                    ),
-                  );
-                },
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+          if (state is QuotationLoadingById)
+            const ModernLoadingOverlay(msg: "Quotations"),
+        ],
+      );
+    }
+    return Center(
+      child: Text(
+        'No data available',
+        style: TextStyle(color: Colors.grey[400]),
       ),
     );
   }

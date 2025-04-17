@@ -144,7 +144,7 @@ class _PurchaseInvoicerefundScreenState
             ],
           ),
           if (state is PurchaseInvoicerefundLoadingById)
-            const ModernLoadingOverlay(),
+            const ModernLoadingOverlay(msg: "Invoice"),
         ],
       );
     }

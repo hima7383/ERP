@@ -122,7 +122,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
               ),
             ],
           ),
-          if (state is SupplierLoadingById) const ModernLoadingOverlay(),
+          if (state is SupplierLoadingById) const ModernLoadingOverlay(msg: "Supplier"),
         ],
       );
     }

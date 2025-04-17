@@ -15,6 +15,11 @@ class RecurringInvoiceError extends RecurringInvoiceState {
 
   RecurringInvoiceError(this.message, {this.isRecoverable = true});
 }
+class RecurringInvoiceLoadingById extends RecurringInvoiceState {
+  final RecurringInvoiceLoaded? previousState;
+
+  RecurringInvoiceLoadingById([this.previousState]);
+} // New loading state for fetching by ID
 
 class RecurringInvoiceLoaded extends RecurringInvoiceState {
   final List<RecurringInvoice> invoices;
@@ -158,7 +163,9 @@ class RecurringInvoiceCubit extends Cubit<RecurringInvoiceState> {
     if (state is! RecurringInvoiceLoaded) return;
     final currentState = state as RecurringInvoiceLoaded;
 
-    emit(currentState.copyWith(selectedInvoice: null));
+    emit(
+      RecurringInvoiceLoadingById(currentState), // Emit loading state with previous state
+    );
 
     try {
       final invoice = await _invoiceRepo.fetchRecurringInvoiceById(id);

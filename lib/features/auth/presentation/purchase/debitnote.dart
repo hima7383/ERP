@@ -127,7 +127,7 @@ class _DebitNoteScreenState extends State<DebitNoteScreen> {
               ),
             ],
           ),
-          if (state is DebitnoteCubitLoadingById) const ModernLoadingOverlay(),
+          if (state is DebitnoteCubitLoadingById) const ModernLoadingOverlay(msg: "Note"),
         ],
       );
     }

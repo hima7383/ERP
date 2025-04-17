@@ -15,6 +15,11 @@ class SalesInvoiceError extends SalesInvoiceState {
 
   SalesInvoiceError(this.message, {this.isRecoverable = true});
 }
+class SalesInvoiceLoadingById extends SalesInvoiceState {
+  final SalesInvoiceLoaded? previousState;
+
+  SalesInvoiceLoadingById([this.previousState]);
+} // New loading state for fetching by ID
 
 class SalesInvoiceLoaded extends SalesInvoiceState {
   final List<SalesInvoice> invoices;
@@ -160,7 +165,7 @@ class SalesInvoiceCubit extends Cubit<SalesInvoiceState> {
     if (state is! SalesInvoiceLoaded) return;
     final currentState = state as SalesInvoiceLoaded;
 
-    emit(currentState.copyWith(selectedInvoice: null));
+    emit(SalesInvoiceLoadingById(currentState)); // Emit loading state with previous state
 
     try {
       final invoice = await _salesRepo.fetchInvoiceDetails(id);

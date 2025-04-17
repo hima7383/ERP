@@ -138,7 +138,7 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
               ),
             ],
           ),
-          if (state is PurchaseInvoiceLoadingById) const ModernLoadingOverlay(),
+          if (state is PurchaseInvoiceLoadingById) const ModernLoadingOverlay(msg: "Invoice",),
         ],
       );
     }

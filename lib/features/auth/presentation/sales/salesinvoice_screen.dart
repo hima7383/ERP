@@ -1,4 +1,5 @@
 import 'package:erp/Core/widgets/genricori_dialogbox.dart';
+import 'package:erp/Core/widgets/modern_loading_overlay.dart';
 import 'package:erp/features/auth/data/entities/sales/salesInvoice_entity.dart';
 import 'package:erp/features/auth/logic/sales/salesInvoice_cubit.dart';
 import 'package:erp/features/auth/presentation/sales/sendata/salesinvoicecreate_screen.dart';
@@ -22,130 +23,148 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        scrolledUnderElevation: 0.0,
-        title: const Text(
-          'Sales Invoices',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-          ),
-        ),
-        centerTitle: false,
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add), // Simple, clear add icon
-            color: Colors.white,         // Ensure icon color matches theme
-            tooltip: 'Create New Invoice', // Accessibility feature
-            onPressed: () {
-              // Navigate to the Sales Invoice Create Screen
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  // Replace SalesInvoiceCreateScreen with your actual create screen widget
-                  builder: (context) => const SalesInvoiceScreencreate(),
-                ),
-              );
-              // Optionally, you could use pushNamed if using named routes
-              // Navigator.of(context).pushNamed('/create-sales-invoice');
-            },
-          ),
-          const SizedBox(width: 8), // Optional padding from the edge
-        ],
-      ),
-      body: BlocListener<SalesInvoiceCubit, SalesInvoiceState>(
-        listener: (context, state) {
-          if (state is SalesInvoiceLoaded && state.selectedInvoice != null) {
-            context.read<SalesInvoiceCubit>().resetSelectedInvoice();
-            _showInvoiceDetailsPopup(
-              context,
-              state.selectedInvoice!,
-              state.productNames,
-              state.customerNames,
-            );
-          }
-        },
-        child: Column(
-          children: [
-            // Modern Search Bar
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Search invoices...',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
-                  filled: true,
-                  fillColor: Colors.grey[900],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 16,
-                  ),
-                ),
-                onChanged: (query) {
-                  context.read<SalesInvoiceCubit>().searchSalesInvoices(query);
-                },
+    return BlocConsumer<SalesInvoiceCubit, SalesInvoiceState>(
+      listener: (context, state) {
+        if (state is SalesInvoiceError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        }
+        if (state is SalesInvoiceLoaded && state.selectedInvoice != null) {
+          _showInvoiceDetailsPopup(
+            context,
+            state.selectedInvoice!,
+            state.productNames,
+            state.customerNames,
+          );
+          context.read<SalesInvoiceCubit>().resetSelectedInvoice();
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            scrolledUnderElevation: 0.0,
+            title: const Text(
+              'Sales Invoices',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
               ),
             ),
-            Expanded(
-              child: BlocBuilder<SalesInvoiceCubit, SalesInvoiceState>(
-                builder: (context, state) {
-                  if (state is SalesInvoiceLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
-                    );
-                  } else if (state is SalesInvoiceError) {
-                    return Center(
-                      child: Text(
-                        state.message,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    );
-                  } else if (state is SalesInvoiceLoaded) {
-                    final invoices = state.filteredInvoices;
-                    if (invoices.isEmpty) {
-                      return Center(
-                        child: Text(
-                          'No invoices found',
-                          style: TextStyle(color: Colors.grey[400]),
-                        ),
-                      );
-                    }
-                    return RefreshIndicator(
-                      onRefresh: () async {
-                        await context.read<SalesInvoiceCubit>().fetchSalesInvoices();
-                      },
-                      child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: invoices.length,
-                        separatorBuilder: (context, index) => const Gap(8),
-                        itemBuilder: (context, index) {
-                          final invoice = invoices[index];
-                          return _SalesInvoiceCard(invoice: invoice);
-                        },
-                      ),
-                    );
-                  }
-                  return Center(
-                    child: Text(
-                      'No data found',
-                      style: TextStyle(color: Colors.grey[400]),
+            centerTitle: false,
+            iconTheme: const IconThemeData(color: Colors.white),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.add),
+                color: Colors.white,
+                tooltip: 'Create New Invoice',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const SalesInvoiceScreencreate(),
                     ),
                   );
                 },
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+            ],
+          ),
+          body: _buildBody(context, state),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, SalesInvoiceState state) {
+    if (state is SalesInvoiceLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    } else if (state is SalesInvoiceError) {
+      return Center(
+        child: Text(
+          state.message,
+          style: const TextStyle(color: Colors.redAccent),
         ),
+      );
+    } else if (state is SalesInvoiceLoadingById ||
+        state is SalesInvoiceLoaded) {
+      final invoices = (state is SalesInvoiceLoaded)
+          ? state.filteredInvoices
+          : (state as SalesInvoiceLoadingById).previousState
+                  is SalesInvoiceLoaded
+              ? (state.previousState as SalesInvoiceLoaded).filteredInvoices
+              : [];
+
+      return Stack(
+        children: [
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Search by ID, Amount, Status, or Date',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                    filled: true,
+                    fillColor: Colors.grey[900],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
+                  ),
+                  onChanged: (query) {
+                    context
+                        .read<SalesInvoiceCubit>()
+                        .searchSalesInvoices(query);
+                  },
+                ),
+              ),
+              Expanded(
+                child: invoices.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No sales invoices found',
+                          style: TextStyle(color: Colors.grey[400]),
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          await context
+                              .read<SalesInvoiceCubit>()
+                              .fetchSalesInvoices();
+                        },
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: invoices.length,
+                          separatorBuilder: (context, index) => const Gap(8),
+                          itemBuilder: (context, index) {
+                            final invoice = invoices[index];
+                            return _SalesInvoiceCard(invoice: invoice);
+                          },
+                        ),
+                      ),
+              ),
+            ],
+          ),
+          if (state is SalesInvoiceLoadingById)
+            const ModernLoadingOverlay(msg: "Invoice"),
+        ],
+      );
+    }
+    return Center(
+      child: Text(
+        'No data available',
+        style: TextStyle(color: Colors.grey[400]),
       ),
     );
   }

@@ -15,6 +15,11 @@ class QuotationError extends QuotationState {
 
    QuotationError(this.message, {this.isRecoverable = true});
 }
+class QuotationLoadingById extends QuotationState {
+  final QuotationLoaded? previousState;
+
+   QuotationLoadingById([this.previousState]);
+} // New loading state for fetching by ID
 
 class QuotationLoaded extends QuotationState {
   final List<Quotation> quotations;
@@ -154,7 +159,7 @@ class QuotationCubit extends Cubit<QuotationState> {
   final currentState = state as QuotationLoaded;
 
   // Only emit a new state if we're actually loading new data
-  emit(currentState.copyWith(selectedQuotation: null)); // Clear previous selection
+  emit(QuotationLoadingById(currentState)); // Clear previous selection
 
   try {
     final quotation = await _quotationRepo.fetchQuotationById(id);

@@ -23,6 +23,9 @@ class _SalesInvoiceScreencreateState extends State<SalesInvoiceScreencreate> {
   @override
   void initState() {
     context.read<CustomerCubit>().fetchCustomers();
+    if (mounted) {
+      context.read<ProductCubit>().fetchProducts();
+    }
     super.initState();
   }
 
@@ -178,7 +181,8 @@ class _SalesInvoiceViewState extends State<_SalesInvoiceView> {
       }
       if (_invoiceItems.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please add at least one invoice item.')),
+          const SnackBar(
+              content: Text('Please add at least one invoice item.')),
         );
         return;
       }
@@ -271,12 +275,17 @@ class _SalesInvoiceViewState extends State<_SalesInvoiceView> {
                         value: _selectedCustomer,
                         hint: 'Select Customer',
                         items: state.customers,
-                        displayText: (customer) => state.nameCache[customer.customerId] ?? 'Unknown Customer',
-                        onChanged: (value) => setState(() => _selectedCustomer = value),
-                        validator: (value) => value == null ? 'Please select a customer' : null,
+                        displayText: (customer) =>
+                            state.nameCache[customer.customerId] ??
+                            'Unknown Customer',
+                        onChanged: (value) =>
+                            setState(() => _selectedCustomer = value),
+                        validator: (value) =>
+                            value == null ? 'Please select a customer' : null,
                       );
                     } else if (state is CustomerError) {
-                      return Text('Error: ${state.message}', style: const TextStyle(color: Colors.red));
+                      return Text('Error: ${state.message}',
+                          style: const TextStyle(color: Colors.red));
                     }
                     return const Text('Loading customers...');
                   },
@@ -315,8 +324,10 @@ class _SalesInvoiceViewState extends State<_SalesInvoiceView> {
                   label: 'Payment Terms (days)',
                   hint: 'e.g., 0 for Net 0, 30 for Net 30',
                   keyboardType: TextInputType.number,
-                  validator: (value) => value == null || value.isEmpty || int.tryParse(value) == null 
-                      ? 'Enter valid payment terms' 
+                  validator: (value) => value == null ||
+                          value.isEmpty ||
+                          int.tryParse(value) == null
+                      ? 'Enter valid payment terms'
                       : null,
                 ),
                 const Gap(24),
@@ -381,7 +392,8 @@ class _SalesInvoiceViewState extends State<_SalesInvoiceView> {
                             ],
                           ),
                           trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.red),
                             onPressed: () => _removeInvoiceItem(index),
                           ),
                         ),
@@ -403,19 +415,21 @@ class _SalesInvoiceViewState extends State<_SalesInvoiceView> {
                         value: _selectedProductToAdd,
                         hint: 'Select Product',
                         items: state.products,
-                        displayText: (product) => 
+                        displayText: (product) =>
                             '${product.name} (\$${product.sellPrice.toStringAsFixed(2)})',
                         onChanged: (value) {
                           setState(() {
                             _selectedProductToAdd = value;
                             if (value != null) {
-                              _itemDescriptionController.text = value.description;
+                              _itemDescriptionController.text =
+                                  value.description;
                             }
                           });
                         },
                       );
                     } else if (state is ProductError) {
-                      return Text('Error: ${state.message}', style: const TextStyle(color: Colors.red));
+                      return Text('Error: ${state.message}',
+                          style: const TextStyle(color: Colors.red));
                     }
                     return const Text('Loading products...');
                   },
@@ -437,7 +451,8 @@ class _SalesInvoiceViewState extends State<_SalesInvoiceView> {
                       child: _buildTextField(
                         controller: _itemDiscountController,
                         label: 'Discount (Amount)',
-                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        keyboardType:
+                            TextInputType.numberWithOptions(decimal: true),
                       ),
                     ),
                     const Gap(8),
@@ -446,7 +461,8 @@ class _SalesInvoiceViewState extends State<_SalesInvoiceView> {
                       child: _buildTextField(
                         controller: _itemTaxController,
                         label: 'Tax (Amount)',
-                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        keyboardType:
+                            TextInputType.numberWithOptions(decimal: true),
                       ),
                     ),
                   ],
@@ -529,10 +545,13 @@ class _SalesInvoiceViewState extends State<_SalesInvoiceView> {
                     controller: _amountPaidController,
                     label: 'Amount Paid',
                     prefixIcon: Icon(Icons.attach_money),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
                       if (_alreadyPaid) {
-                        if (value == null || value.isEmpty || double.tryParse(value) == null) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            double.tryParse(value) == null) {
                           return 'Enter valid amount';
                         }
                         if (double.parse(value) <= 0) {
@@ -554,7 +573,8 @@ class _SalesInvoiceViewState extends State<_SalesInvoiceView> {
                       child: ElevatedButton(
                         onPressed: isLoading ? null : _submitForm,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isLoading ? Colors.grey[700] : Colors.teal,
+                          backgroundColor:
+                              isLoading ? Colors.grey[700] : Colors.teal,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
@@ -736,7 +756,9 @@ class _SalesInvoiceViewState extends State<_SalesInvoiceView> {
     );
   }
 
-  Widget _buildTotalRow(String label, double value, {
+  Widget _buildTotalRow(
+    String label,
+    double value, {
     bool isBold = false,
     Color? textColor,
   }) {

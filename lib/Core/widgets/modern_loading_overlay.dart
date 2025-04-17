@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class ModernLoadingOverlay extends StatelessWidget {
-  const ModernLoadingOverlay({Key? key}) : super(key: key);
+  final String msg;
+
+  const ModernLoadingOverlay({Key? key, required this.msg}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +32,7 @@ class ModernLoadingOverlay extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Loading Invoice',
+                'Loading $msg',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.9),
                   fontSize: 16,

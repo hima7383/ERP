@@ -3,8 +3,20 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp/features/auth/data/entities/stock/prdouct.dart';
 import 'package:erp/features/auth/logic/stock/product_bloc.dart';
 
-class ProductsScreen extends StatelessWidget {
+class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
+
+  @override
+  State<ProductsScreen> createState() => _ProductsScreenState();
+}
+
+class _ProductsScreenState extends State<ProductsScreen> with RouteAware {
+  @override
+  void didPopNext() async {
+    // Called when the current route has been popped off, and the user returns to this route
+    await context.read<ProductCubit>().fetchProducts();
+    print("it popped next");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -296,7 +308,6 @@ class ProductsScreen extends StatelessWidget {
       ),
     );
   }*/
-
   void _showProductDetails(BuildContext context, Product product) {
     showDialog(
       context: context,
