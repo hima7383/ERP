@@ -313,40 +313,76 @@ class ProductsScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 5),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[900],
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        topRight: Radius.circular(12),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          product.productOrService == 1
-                              ? Icons.construction
-                              : Icons.inventory_2,
-                          color: product.productOrService == 1
-                              ? Colors.blue[400]
-                              : Colors.green[400],
-                          size: 24,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          product.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
+                  // Header with image
+                  Stack(
+                    children: [
+                      // Image container with fallback
+                      AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: Container(
+                          height: MediaQuery.of(context).size.height * 0.4,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[800],
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              topRight: Radius.circular(12),
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              topRight: Radius.circular(12),
+                            ),
+                            child: _buildProductImage(product.imagePath),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      // Product name overlay
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                Colors.black.withOpacity(0.8),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                product.productOrService == 1
+                                    ? Icons.construction
+                                    : Icons.inventory_2,
+                                color: product.productOrService == 1
+                                    ? Colors.blue[400]
+                                    : Colors.green[400],
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                product.name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  Divider(height: 24, color: Colors.grey[850]),
+                  Divider(height: 1, color: Colors.grey[850]),
 
                   // Content
                   Padding(
@@ -413,6 +449,61 @@ class ProductsScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildProductImage(String? imageUrl) {
+    // Default placeholder widget
+    final placeholder = Container(
+      color: Colors.grey[800],
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.image_not_supported, size: 50, color: Colors.grey[600]),
+            const SizedBox(height: 8),
+            Text(
+              'No Image Available',
+              style: TextStyle(color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return placeholder;
+    }
+
+    return Image.network(
+      imageUrl,
+      fit: BoxFit.cover, // This ensures the image covers the entire area
+      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (wasSynchronouslyLoaded) return child;
+        return AnimatedOpacity(
+          opacity: frame == null ? 0 : 1,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+          child: child,
+        );
+      },
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          color: Colors.grey[800],
+          child: Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
+                  : null,
+              color: Colors.blue[400],
+              strokeWidth: 2,
+            ),
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) => placeholder,
     );
   }
 
