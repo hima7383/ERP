@@ -1,14 +1,14 @@
 import 'dart:typed_data';
+import 'package:erp/Core/widgets/modern_loading_overlay.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw; // The 'as pw' creates an alias
-import 'package:erp/features/auth/data/entities/purchase/purchasereturn.dart';
-import 'package:erp/features/auth/logic/purchase/purchaserefund_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:printing/printing.dart';
-import 'package:gap/gap.dart'; // Import Gap
+import 'package:erp/features/auth/data/entities/purchase/purchasereturn.dart';
+import 'package:erp/features/auth/logic/purchase/purchaserefund_cubit.dart';
+import 'package:gap/gap.dart';
 
-// Convert to StatefulWidget for initState data fetching
 class PurchaseInvoicerefundScreen extends StatefulWidget {
   const PurchaseInvoicerefundScreen({super.key});
 
@@ -21,132 +21,142 @@ class _PurchaseInvoicerefundScreenState
     extends State<PurchaseInvoicerefundScreen> {
   @override
   void initState() {
-    // Fetch data when the screen loads
-    context.read<PurchaseInvoicerefundCubit>().fetchPurchaseInvoices(); // Assuming method name
+    context.read<PurchaseInvoicerefundCubit>().fetchPurchaseInvoices();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black, // Dark background
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        scrolledUnderElevation: 0.0,
-        title: const Text( // Updated AppBar Title style
-          'Purchase Refunds', // More appropriate title
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-          ),
-        ),
-        centerTitle: false, // Left-align title
-        iconTheme: const IconThemeData(color: Colors.white), // White back arrow etc.
-      ),
-      body: BlocListener<PurchaseInvoicerefundCubit, PurchaseInvoicerefundState>(
-        listener: (context, state) {
-          if (state is PurchaseInvoicerefundLoaded &&
-              state.selectedInvoice != null) {
-            // Use the updated popup method
-            _showRefundDetailsPopup(context, state.selectedInvoice!,
-                state.productNames, state.supplierNames);
-          }
-        },
-        child: Column(
-          children: [
-            // Modern Search Bar (copied from PurchaseInvoiceScreen)
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                style: const TextStyle(color: Colors.white), // White input text
-                decoration: InputDecoration(
-                  hintText: 'Search refunds...', // Updated hint text
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
-                  filled: true,
-                  fillColor: Colors.grey[900], // Dark fill
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12), // Rounded corners
-                    borderSide: BorderSide.none, // No visible border line
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 16,
-                  ),
-                ),
-                onChanged: (query) {
-                  context
-                      .read<PurchaseInvoicerefundCubit>()
-                      .searchPurchaseInvoices(query); // Keep search logic
-                },
+    return BlocConsumer<PurchaseInvoicerefundCubit, PurchaseInvoicerefundState>(
+      listener: (context, state) {
+        if (state is PurchaseInvoicerefundError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        }
+        if (state is PurchaseInvoicerefundLoaded &&
+            state.selectedInvoice != null) {
+          _showRefundDetailsPopup(context, state.selectedInvoice!,
+              state.productNames, state.supplierNames);
+          context.read<PurchaseInvoicerefundCubit>().resetSelectedInvoice();
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            scrolledUnderElevation: 0.0,
+            title: const Text(
+              'Purchase Refunds',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
               ),
             ),
-            Expanded(
-              child: BlocBuilder<PurchaseInvoicerefundCubit,
-                  PurchaseInvoicerefundState>(
-                builder: (context, state) {
-                  if (state is PurchaseInvoicerefundLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: Colors.white, // White loading indicator
-                      ),
-                    );
-                  } else if (state is PurchaseInvoicerefundError) {
-                    return Center(
-                      child: Text(
-                        state.message,
-                        style: const TextStyle(color: Colors.redAccent), // Error color
-                      ),
-                    );
-                  } else if (state is PurchaseInvoicerefundLoaded) {
-                    final refunds = state.filteredInvoices; // Rename for clarity
-                    if (refunds.isEmpty) {
-                      return Center(
+            centerTitle: false,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: _buildBody(context, state),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, PurchaseInvoicerefundState state) {
+    if (state is PurchaseInvoicerefundLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    } else if (state is PurchaseInvoicerefundError) {
+      return Center(
+        child: Text(
+          state.message,
+          style: const TextStyle(color: Colors.redAccent),
+        ),
+      );
+    } else if (state is PurchaseInvoicerefundLoadingById ||
+        state is PurchaseInvoicerefundLoaded) {
+      final refunds = (state is PurchaseInvoicerefundLoaded)
+          ? state.filteredInvoices
+          : (state as PurchaseInvoicerefundLoadingById).previousState
+                  is PurchaseInvoicerefundLoaded
+              ? (state.previousState as PurchaseInvoicerefundLoaded)
+                  .filteredInvoices
+              : [];
+
+      return Stack(
+        children: [
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Search by ID, Amount, or Status',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                    filled: true,
+                    fillColor: Colors.grey[900],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
+                  ),
+                  onChanged: (query) {
+                    context
+                        .read<PurchaseInvoicerefundCubit>()
+                        .searchPurchaseInvoices(query);
+                  },
+                ),
+              ),
+              Expanded(
+                child: refunds.isEmpty
+                    ? Center(
                         child: Text(
-                          'No purchase refunds found', // Updated empty message
+                          'No purchase refunds found',
                           style: TextStyle(color: Colors.grey[400]),
                         ),
-                      );
-                    }
-                    // Use ListView.separated with the custom card
-                    return RefreshIndicator(
-                      onRefresh: () async {
-                        // Refresh logic (if needed)
-                        context
-                            .read<PurchaseInvoicerefundCubit>()
-                            .fetchPurchaseInvoices(); // Fetch again
-                      },
-                      child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 16), // Padding for list
-                        itemCount: refunds.length,
-                        separatorBuilder: (context, index) => const Gap(8), // Consistent spacing
-                        itemBuilder: (context, index) {
-                          final refund = refunds[index];
-                          // Use the new custom card widget
-                          return _RefundCard(refund: refund);
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          await context
+                              .read<PurchaseInvoicerefundCubit>()
+                              .fetchPurchaseInvoices();
                         },
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: refunds.length,
+                          separatorBuilder: (context, index) => const Gap(8),
+                          itemBuilder: (context, index) {
+                            final refund = refunds[index];
+                            return _RefundCard(refund: refund);
+                          },
+                        ),
                       ),
-                    );
-                  }
-                  // Default/fallback state
-                  return Center(
-                    child: Text(
-                      'No data found',
-                      style: TextStyle(color: Colors.grey[400]),
-                    ),
-                  );
-                },
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+          if (state is PurchaseInvoicerefundLoadingById)
+            const ModernLoadingOverlay(),
+        ],
+      );
+    }
+    return Center(
+      child: Text(
+        'No data available',
+        style: TextStyle(color: Colors.grey[400]),
       ),
     );
   }
 
-  // --- PDF Generation (Consider renaming for clarity) ---
-  Future<Uint8List> _generateRefundPdf( // Renamed for clarity
+  Future<Uint8List> _generateRefundPdf(
     PurchaseInvoiceRefund refund,
     Map<int, String> productNames,
     Map<int, String> supplierNames,
@@ -159,9 +169,8 @@ class _PurchaseInvoicerefundScreenState
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Refund Header
               pw.Text(
-                'Refund Note #${refund.purchaseInvoiceRefundId}', // Updated title
+                'Refund #${refund.purchaseInvoiceRefundId}',
                 style: pw.TextStyle(
                   fontSize: 18,
                   fontWeight: pw.FontWeight.bold,
@@ -176,8 +185,6 @@ class _PurchaseInvoicerefundScreenState
                 ),
               ),
               pw.SizedBox(height: 16),
-
-              // Supplier Info
               pw.Text(
                 'Supplier Name: ${supplierNames[refund.supplierId] ?? 'Supplier #${refund.supplierId}'}',
                 style: pw.TextStyle(fontSize: 14),
@@ -188,17 +195,15 @@ class _PurchaseInvoicerefundScreenState
                 style: pw.TextStyle(fontSize: 14),
               ),
               pw.SizedBox(height: 16),
-
-              // Items Table
               pw.Text(
-                'Returned Items', // Updated title
+                'Returned Items',
                 style: pw.TextStyle(
                   fontSize: 16,
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
               pw.SizedBox(height: 8),
-              pw.TableHelper.fromTextArray( // Using TableHelper for simplicity here
+              pw.TableHelper.fromTextArray(
                 border: pw.TableBorder.all(color: PdfColors.grey300),
                 columnWidths: {
                   0: const pw.FlexColumnWidth(2),
@@ -214,7 +219,7 @@ class _PurchaseInvoicerefundScreenState
                   color: PdfColors.grey200,
                 ),
                 headers: ['Name', 'Unit Price', 'Qty', 'Subtotal'],
-                data: refund.purchaseReturnItemsDto.map((item) { // Use correct DTO list
+                data: refund.purchaseReturnItemsDto.map((item) {
                   return [
                     productNames[item.productId] ??
                         'Product #${item.productId}',
@@ -225,13 +230,11 @@ class _PurchaseInvoicerefundScreenState
                 }).toList(),
               ),
               pw.SizedBox(height: 16),
-
-              // Total Section
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'Total Refund:', // Updated label
+                    'Total Refund:',
                     style: pw.TextStyle(
                       fontSize: 16,
                       fontWeight: pw.FontWeight.bold,
@@ -268,8 +271,6 @@ class _PurchaseInvoicerefundScreenState
                 ],
               ),
               pw.SizedBox(height: 16),
-
-              // Notes
               pw.Text(
                 'Notes:',
                 style: pw.TextStyle(
@@ -279,7 +280,7 @@ class _PurchaseInvoicerefundScreenState
               ),
               pw.SizedBox(height: 8),
               pw.Text(
-                refund.notes ?? "No notes", // Handle null notes
+                refund.notes ?? 'No notes',
                 style: pw.TextStyle(fontSize: 14),
               ),
             ],
@@ -291,35 +292,33 @@ class _PurchaseInvoicerefundScreenState
     return pdf.save();
   }
 
-  // --- Modern Details Popup ---
-  void _showRefundDetailsPopup( // Renamed for clarity
-      BuildContext context,
-      PurchaseInvoiceRefund refund, // Use Refund object
-      Map<int, String> productNames,
-      Map<int, String> supplierNames) {
+  void _showRefundDetailsPopup(
+    BuildContext context,
+    PurchaseInvoiceRefund refund,
+    Map<int, String> productNames,
+    Map<int, String> supplierNames,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
-        // Use Dialog for more customization options
         return Dialog(
-          backgroundColor: Colors.grey[900], // Dark background
+          backgroundColor: Colors.grey[900],
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16), // Rounded corners
+            borderRadius: BorderRadius.circular(16),
           ),
-          insetPadding: const EdgeInsets.all(16), // Padding around the dialog
-          child: SingleChildScrollView( // Make content scrollable
+          insetPadding: const EdgeInsets.all(16),
+          child: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.all(20), // Inner padding
+              padding: const EdgeInsets.all(20),
               child: Column(
-                mainAxisSize: MainAxisSize.min, // Fit content size
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header Row (Title + Close Button)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Refund Details', // Updated Title
+                        'Refund Details',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -335,8 +334,6 @@ class _PurchaseInvoicerefundScreenState
                   ),
                   const Divider(color: Colors.grey),
                   const Gap(16),
-
-                  // Refund Info using _DetailRow
                   _DetailRow(
                     label: 'Refund #',
                     value: refund.purchaseInvoiceRefundId.toString(),
@@ -346,8 +343,6 @@ class _PurchaseInvoicerefundScreenState
                     value: refund.invoiceDate.toString().split(' ')[0],
                   ),
                   const Gap(16),
-
-                  // Supplier Info using _DetailRow
                   _DetailRow(
                     label: 'Supplier',
                     value: supplierNames[refund.supplierId] ??
@@ -358,8 +353,6 @@ class _PurchaseInvoicerefundScreenState
                     value: refund.journalEntryID.toString(),
                   ),
                   const Gap(16),
-
-                  // Items Table (Modern Style)
                   Text(
                     'Returned Items',
                     style: TextStyle(
@@ -369,9 +362,9 @@ class _PurchaseInvoicerefundScreenState
                     ),
                   ),
                   const Gap(8),
-                  Container( // Container for table background/border
+                  Container(
                     decoration: BoxDecoration(
-                      color: Colors.grey[800], // Slightly lighter background for table area
+                      color: Colors.grey[800],
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Table(
@@ -382,10 +375,9 @@ class _PurchaseInvoicerefundScreenState
                         3: FlexColumnWidth(1),
                       },
                       children: [
-                        // Table Header
                         TableRow(
                           decoration: BoxDecoration(
-                            color: Colors.grey[700], // Header background
+                            color: Colors.grey[700],
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(8),
                             ),
@@ -397,8 +389,7 @@ class _PurchaseInvoicerefundScreenState
                             _TableHeaderCell('Subtotal'),
                           ],
                         ),
-                        // Table Rows
-                        ...refund.purchaseReturnItemsDto.map((item) { // Use correct DTO list
+                        ...refund.purchaseReturnItemsDto.map((item) {
                           return TableRow(
                             children: [
                               _TableCell(
@@ -415,8 +406,6 @@ class _PurchaseInvoicerefundScreenState
                     ),
                   ),
                   const Gap(16),
-
-                  // Totals (Modern Style)
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -425,18 +414,12 @@ class _PurchaseInvoicerefundScreenState
                     ),
                     child: Column(
                       children: [
-                        // _TotalRow( // Example if you had subtotal/tax
-                        //   label: 'Subtotal',
-                        //   value: '\$${refund.calculateSubtotal()}', // Example method
-                        // ),
-                        // const Divider(color: Colors.grey),
                         _TotalRow(
                           label: 'Total Refund',
                           value: '\$${refund.totalAmount}',
                           isBold: true,
                         ),
                         const Gap(8),
-                        // Status Badge Row
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -478,8 +461,6 @@ class _PurchaseInvoicerefundScreenState
                     ),
                   ),
                   const Gap(16),
-
-                  // Notes (Modern Style)
                   Text(
                     'Notes',
                     style: TextStyle(
@@ -497,13 +478,13 @@ class _PurchaseInvoicerefundScreenState
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      refund.notes?.isNotEmpty == true ? refund.notes! : 'No notes',
+                      refund.notes?.isNotEmpty == true
+                          ? refund.notes!
+                          : 'No notes',
                       style: TextStyle(color: Colors.grey[300]),
                     ),
                   ),
                   const Gap(24),
-
-                  // Action Buttons (Modern Style)
                   Row(
                     children: [
                       Expanded(
@@ -524,7 +505,7 @@ class _PurchaseInvoicerefundScreenState
                       Expanded(
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[800], // Accent color
+                            backgroundColor: Colors.blue[800],
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
@@ -532,12 +513,10 @@ class _PurchaseInvoicerefundScreenState
                             ),
                           ),
                           onPressed: () async {
-                            // Use the renamed PDF function
                             final pdfBytes = await _generateRefundPdf(
                                 refund, productNames, supplierNames);
                             final fileName =
-                                'Refund_${refund.purchaseInvoiceRefundId}_' // Updated filename
-                                '${refund.invoiceDate.toString().split(' ')[0]}.pdf';
+                                'Refund_${refund.purchaseInvoiceRefundId}_${refund.invoiceDate.toString().split(' ')[0]}.pdf';
                             await Printing.layoutPdf(
                               onLayout: (_) => pdfBytes,
                               name: fileName,
@@ -558,9 +537,8 @@ class _PurchaseInvoicerefundScreenState
   }
 }
 
-// --- Custom Card Widget for Refunds ---
 class _RefundCard extends StatelessWidget {
-  final PurchaseInvoiceRefund refund; // Use Refund object
+  final PurchaseInvoiceRefund refund;
 
   const _RefundCard({required this.refund});
 
@@ -571,9 +549,8 @@ class _RefundCard extends StatelessWidget {
     final Color highlightColor = Colors.white.withOpacity(0.08);
     final Color splashColor = Colors.white.withOpacity(0.04);
 
-    return InkWell( // Use InkWell for hover/tap effects
+    return InkWell(
       onTap: () {
-        // Fetch specific refund details on tap
         context
             .read<PurchaseInvoicerefundCubit>()
             .fetchPurchaseInvoicerefundById(refund.purchaseInvoiceRefundId);
@@ -584,11 +561,11 @@ class _RefundCard extends StatelessWidget {
       borderRadius: cardBorderRadius,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.grey[900], // Dark card background
+          color: Colors.grey[900],
           borderRadius: cardBorderRadius,
-          border: Border.all(color: Colors.grey[800]!), // Subtle border
+          border: Border.all(color: Colors.grey[800]!),
         ),
-        padding: const EdgeInsets.all(16), // Internal padding
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -596,19 +573,16 @@ class _RefundCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'REF-${refund.purchaseInvoiceRefundId}', // Use REF prefix
+                  'REF-${refund.purchaseInvoiceRefundId}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
                   ),
                 ),
-                // Status Badge (copied style)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: refund.paymentStatus == 'Paid'
                         ? Colors.green.withOpacity(0.2)
@@ -632,18 +606,18 @@ class _RefundCard extends StatelessWidget {
                 ),
               ],
             ),
-            const Gap(12), // Consistent spacing
+            const Gap(12),
             Row(
               children: [
                 Icon(Icons.calendar_today, size: 16, color: Colors.grey[400]),
                 const Gap(4),
                 Text(
-                  refund.invoiceDate.toString().split(' ')[0], // Display date
+                  refund.invoiceDate.toString().split(' ')[0],
                   style: TextStyle(color: Colors.grey[400], fontSize: 13),
                 ),
-                const Spacer(), // Pushes amount to the right
+                const Spacer(),
                 Text(
-                  '\$${refund.totalAmount}', // Display total amount
+                  '\$${refund.totalAmount}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -659,9 +633,6 @@ class _RefundCard extends StatelessWidget {
   }
 }
 
-
-// --- Helper Widgets for Popup (Copied from PurchaseInvoiceScreen) ---
-
 class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
@@ -676,7 +647,7 @@ class _DetailRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120, // Consistent label width
+            width: 120,
             child: Text(
               label,
               style: TextStyle(
@@ -709,11 +680,11 @@ class _TableHeaderCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(12), // Padding within header cells
+      padding: const EdgeInsets.all(12),
       child: Text(
         text,
         style: TextStyle(
-          color: Colors.white, // Header text color
+          color: Colors.white,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -729,10 +700,10 @@ class _TableCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(12), // Padding within table cells
+      padding: const EdgeInsets.all(12),
       child: Text(
         text,
-        style: TextStyle(color: Colors.grey[300]), // Table data text color
+        style: TextStyle(color: Colors.grey[300]),
       ),
     );
   }

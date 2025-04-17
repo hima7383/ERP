@@ -8,6 +8,12 @@ abstract class PurchaseInvoicerefundState {}
 
 class PurchaseInvoicerefundLoading extends PurchaseInvoicerefundState {}
 
+class PurchaseInvoicerefundLoadingById extends PurchaseInvoicerefundState {
+  final PurchaseInvoicerefundLoaded? previousState;
+
+  PurchaseInvoicerefundLoadingById([this.previousState]);
+} // New loading state for fetching by ID
+
 class PurchaseInvoicerefundError extends PurchaseInvoicerefundState {
   final String message;
   PurchaseInvoicerefundError(this.message);
@@ -16,8 +22,7 @@ class PurchaseInvoicerefundError extends PurchaseInvoicerefundState {
 class PurchaseInvoicerefundLoaded extends PurchaseInvoicerefundState {
   final List<PurchaseInvoiceRefund> invoices;
   final List<PurchaseInvoiceRefund> filteredInvoices;
-  final PurchaseInvoiceRefund?
-      selectedInvoice; // Store selected invoice separately
+  final PurchaseInvoiceRefund? selectedInvoice;
   final Map<int, String> productNames;
   final Map<int, String> supplierNames;
 
@@ -39,15 +44,23 @@ class PurchaseInvoicerefundCubit extends Cubit<PurchaseInvoicerefundState> {
 
   Future<void> fetchPurchaseInvoices() async {
     if (_allInvoices.isNotEmpty) {
-      emit(PurchaseInvoicerefundLoaded(_allInvoices,
-          productNames: {}, supplierNames: {}));
+      emit(PurchaseInvoicerefundLoaded(
+        _allInvoices,
+        productNames: {},
+        supplierNames: {},
+      ));
       return;
     }
+
     emit(PurchaseInvoicerefundLoading());
+
     try {
       _allInvoices = await _repository.fetchPurchaseInvoicesrefund();
-      emit(PurchaseInvoicerefundLoaded(_allInvoices,
-          productNames: {}, supplierNames: {}));
+      emit(PurchaseInvoicerefundLoaded(
+        _allInvoices,
+        productNames: {},
+        supplierNames: {},
+      ));
     } catch (e) {
       emit(PurchaseInvoicerefundError('Failed to load purchase invoices: $e'));
     }
@@ -57,13 +70,50 @@ class PurchaseInvoicerefundCubit extends Cubit<PurchaseInvoicerefundState> {
     if (state is PurchaseInvoicerefundLoaded) {
       final currentState = state as PurchaseInvoicerefundLoaded;
       emit(PurchaseInvoicerefundLoaded(
-        supplierNames: {},
-        productNames: {},
         currentState.invoices,
         filteredInvoices: currentState.filteredInvoices,
-        selectedInvoice: null, // Reset selected invoice
+        selectedInvoice: null,
+        productNames: {},
+        supplierNames: {},
       ));
     }
+  }
+
+  Future<Map<int, String>> fetchProductNamesForInvoice(
+      PurchaseInvoiceRefund invoice) async {
+    final productNames = <int, String>{};
+    final productRepo = ProductRepository();
+
+    for (var item in invoice.purchaseReturnItemsDto) {
+      try {
+        final product = await productRepo.fetchProductById(item.productId);
+        productNames[item.productId] = product.productName;
+      } catch (e) {
+        productNames[item.productId] = 'Product #${item.productId}';
+      }
+    }
+
+    return productNames;
+  }
+
+  Future<Map<int, String>> fetchsupplierNamesForInvoice(
+      PurchaseInvoiceRefund invoice) async {
+    final supplierNames = <int, String>{};
+    final supplierRepo = SupplierRepository();
+
+    try {
+      final supplier = await supplierRepo.fetchSuppliers();
+      for (var supp in supplier) {
+        if (supp.supplierId == invoice.supplierId) {
+          supplierNames[invoice.supplierId] = supp.supplierName;
+          break; // No need to continue once found
+        }
+      }
+    } catch (e) {
+      supplierNames[invoice.supplierId] = 'Supplier #${invoice.supplierId}';
+    }
+
+    return supplierNames;
   }
 
   void searchPurchaseInvoices(String query) {
@@ -80,85 +130,38 @@ class PurchaseInvoicerefundCubit extends Cubit<PurchaseInvoicerefundState> {
                       .toLowerCase()
                       .contains(query.toLowerCase()))
               .toList();
+
       emit(PurchaseInvoicerefundLoaded(
-        supplierNames: {},
-        productNames: {},
-        _allInvoices,
+        currentState.invoices,
         filteredInvoices: filteredInvoices,
-        selectedInvoice: currentState.selectedInvoice, // Keep selected invoice
+        selectedInvoice: currentState.selectedInvoice,
+        productNames: currentState.productNames,
+        supplierNames: currentState.supplierNames,
       ));
     }
   }
 
-  Future<Map<int, String>> fetchProductNamesForInvoice(
-      PurchaseInvoiceRefund invoice) async {
-    final productNames = <int, String>{};
-    final productRepo = ProductRepository();
-
-    for (var item in invoice.purchaseReturnItemsDto) {
-      print(item);
-      try {
-        final product = await productRepo.fetchProductById(item.productId);
-
-        // Use ProductDetailEntity to get the product name
-        productNames[item.productId] = product.productName;
-      } catch (e) {
-        print("Something went wrong: $e"); // Debug: Print the error
-        productNames[item.productId] = 'Product #${item.productId}'; // Fallback
-      }
-    }
-
-    return productNames;
-  }
-
-  Future<Map<int, String>> fetchsupplierNamesForInvoice(
-      PurchaseInvoiceRefund invoice) async {
-    final supplierNames = <int, String>{};
-    final supplierRepo = SupplierRepository();
-
-    for (var item in invoice.purchaseReturnItemsDto) {
-      print(item);
-      try {
-        final supplier = await supplierRepo.fetchSuppliers();
-        for (var supp in supplier) {
-          if (supp.supplierId == invoice.supplierId) {
-            supplierNames[invoice.supplierId] = supp.supplierName;
-          }
-        }
-      } catch (e) {
-        print("Something went wrong: $e"); // Debug: Print the error
-        supplierNames[invoice.supplierId] =
-            'Supplier #${invoice.supplierId}'; // Fallback
-      }
-    }
-
-    return supplierNames;
-  }
-
   Future<void> fetchPurchaseInvoicerefundById(int id) async {
-    print('Fetching invoice by ID: $id');
+    if (state is! PurchaseInvoicerefundLoaded) return;
+
+    final currentState = state as PurchaseInvoicerefundLoaded;
+    emit(PurchaseInvoicerefundLoadingById(currentState));
 
     try {
-      final fetchedInvoice =
-          await _repository.fetchPurchaseInvoicerefundById(id);
+      final fetchedInvoice = await _repository.fetchPurchaseInvoicerefundById(id);
       final productNames = await fetchProductNamesForInvoice(fetchedInvoice);
       final supplierNames = await fetchsupplierNamesForInvoice(fetchedInvoice);
 
-      if (state is PurchaseInvoicerefundLoaded) {
-        final currentState = state as PurchaseInvoicerefundLoaded;
-
-        // ✅ Keep the original list and update only the selected invoice
-        emit(PurchaseInvoicerefundLoaded(
-          supplierNames: supplierNames,
-          productNames: productNames,
-          currentState.invoices,
-          filteredInvoices: currentState.filteredInvoices,
-          selectedInvoice:
-              fetchedInvoice, // Store the fetched invoice separately
-        ));
-      }
+      emit(PurchaseInvoicerefundLoaded(
+        currentState.invoices,
+        filteredInvoices: currentState.filteredInvoices,
+        selectedInvoice: fetchedInvoice,
+        productNames: productNames,
+        supplierNames: supplierNames,
+      ));
     } catch (e) {
-      emit(PurchaseInvoicerefundError('Failed to load purchase invoice: $e'));
+      emit(PurchaseInvoicerefundError('Failed to load invoice: $e'));
+      emit(currentState); // Revert to previous state
     }
   }
 }
