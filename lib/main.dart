@@ -35,7 +35,7 @@ import 'package:erp/features/auth/logic/sales/recuringinvoice_cubit.dart';
 import 'package:erp/features/auth/logic/sales/salesInvoice_cubit.dart';
 import 'package:erp/features/auth/logic/sales/sendata/Salesinvoicecreation_cubit.dart';
 import 'package:erp/features/auth/logic/stock/product_bloc.dart';
-import 'package:erp/features/auth/logic/stock/warehosue_permesion_cubit.dart';
+import 'package:erp/features/auth/logic/stock/price_list_cubit.dart';
 import 'package:erp/features/auth/logic/stock/warehouse_cubit.dart';
 import 'package:erp/features/auth/presentation/splash_screen.dart';
 import 'package:flutter/material.dart';

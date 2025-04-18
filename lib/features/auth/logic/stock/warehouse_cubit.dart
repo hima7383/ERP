@@ -15,7 +15,14 @@ class WarehouseInitial extends WarehouseState {}
 
 // State while loading data from the repository
 class WarehouseLoading extends WarehouseState {}
+class WarehouseLoadingById extends WarehouseState {
+  final WarehouseListLoaded? previousState; // Holds the previous state for reference
 
+  const WarehouseLoadingById([this.previousState]);
+
+  @override
+  List<Object?> get props => [previousState];
+}
 // State representing an error during data fetching
 class WarehouseError extends WarehouseState {
   final String message;
@@ -93,6 +100,7 @@ class WarehouseCubit extends Cubit<WarehouseState> {
        return;
     }
     final currentState = state as WarehouseListLoaded;
+    emit(WarehouseLoadingById(currentState)); // Emit loading state with previous state
 
     // Optional: Indicate loading details, perhaps by setting selectedWarehouse briefly?
     // emit(currentState.copyWith(selectedWarehouse: null)); // Clear previous selection immediately

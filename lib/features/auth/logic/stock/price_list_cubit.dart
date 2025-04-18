@@ -23,6 +23,14 @@ class PriceListError extends PriceListState {
   @override
   List<Object?> get props => [message, isRecoverable];
 }
+class PriceListLoadingById extends PriceListState {
+  final PriceListLoaded? previousState;
+
+  const PriceListLoadingById([this.previousState]);
+
+  @override
+  List<Object?> get props => [previousState];
+}
 
 class PriceListLoaded extends PriceListState {
   final List<PriceListSummary> priceLists;       // Full list of summaries
@@ -82,6 +90,7 @@ class PriceListCubit extends Cubit<PriceListState> {
        return;
     }
     final currentState = state as PriceListLoaded;
+    emit(PriceListLoadingById(currentState)); // Show loading state for details
 
     // Optional: Indicate loading details? Can be handled by UI showing progress on tap.
 

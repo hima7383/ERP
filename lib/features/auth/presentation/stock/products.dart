@@ -11,12 +11,6 @@ class ProductsScreen extends StatefulWidget {
 }
 
 class _ProductsScreenState extends State<ProductsScreen> with RouteAware {
-  @override
-  void didPopNext() async {
-    // Called when the current route has been popped off, and the user returns to this route
-    await context.read<ProductCubit>().fetchProducts();
-    print("it popped next");
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,14 +75,6 @@ class _ProductsScreenState extends State<ProductsScreen> with RouteAware {
           ],
         ),
       ),
-      /* bottomNavigationBar: BlocBuilder<ProductCubit, ProductState>(
-        builder: (context, state) {
-          if (state is ProductLoaded) {
-            return _buildPaginationControls(context, state);
-          }
-          return const SizedBox.shrink();
-        },
-      ),*/
     );
   }
 

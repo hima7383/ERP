@@ -16,7 +16,7 @@ import 'package:erp/features/auth/presentation/sales/quotation_screen.dart';
 import 'package:erp/features/auth/presentation/sales/recuringinvoice_screen.dart';
 import 'package:erp/features/auth/presentation/sales/salesinvoice_screen.dart';
 import 'package:erp/features/auth/presentation/stock/products.dart';
-import 'package:erp/features/auth/presentation/stock/warehosue_permesion_screen.dart';
+import 'package:erp/features/auth/presentation/stock/price_list_screen.dart';
 import 'package:erp/features/auth/presentation/stock/warehouse_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
