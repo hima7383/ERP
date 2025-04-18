@@ -1,118 +1,163 @@
+import 'package:erp/Core/widgets/modern_loading_overlay.dart';
 import 'package:erp/features/auth/data/entities/finanse/expenses_entity.dart';
 import 'package:erp/features/auth/logic/finance/expences_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gap/gap.dart';
 
 class ExpenseScreen extends StatelessWidget {
   const ExpenseScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text('Expenses', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.black,
-        scrolledUnderElevation: 0.0,
-      ),
-      body: BlocConsumer<ExpenseCubit, ExpenseState>(
-        listener: (context, state) {
-          if (state is ExpenseLoaded && state.selectedExpense != null) {
-            _showExpenseDetailsPopup(
-                context, state.selectedExpense!, state.supplierNames);
-          }
-        },
-        builder: (context, state) {
-          if (state is ExpenseLoading) {
-            return const Center(
-                child: CircularProgressIndicator(
-              color: Colors.white,
-            ));
-          }
-          if (state is ExpenseError) {
-            return Center(
-                child: Text(state.message,
-                    style: const TextStyle(color: Colors.red)));
-          }
-          if (state is! ExpenseLoaded) {
-            return const Center(
-                child: Text(
-              'No expenses found',
-              style: TextStyle(color: Colors.white),
-            ));
-          }
-
-          return Column(
-            children: [
-              _buildSearchBar(context),
-              Expanded(child: _buildExpenseList(state,context)),
-            ],
+    return BlocConsumer<ExpenseCubit, ExpenseState>(
+      listener: (context, state) {
+        if (state is ExpenseError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
           );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSearchBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: 'Search by ID, Code or Amount',
-          prefixIcon: const Icon(Icons.search, color: Colors.white),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey[800]!),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey[800]!),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Colors.blue),
-          ),
-          filled: true,
-          fillColor: Colors.grey[900],
-        ),
-        style: const TextStyle(color: Colors.white),
-        onChanged: (query) =>
-            context.read<ExpenseCubit>().searchExpenses(query),
-      ),
-    );
-  }
-
-  Widget _buildExpenseList(ExpenseLoaded state, BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: () async {
-        context.read<ExpenseCubit>().fetchExpenses();
+        }
+        if (state is ExpenseLoaded && state.selectedExpense != null) {
+          _showExpenseDetailsPopup(
+            context,
+            state.selectedExpense!,
+            state.supplierNames,
+          );
+          context.read<ExpenseCubit>().resetSelectedExpense();
+        }
       },
-      child: ListView.builder(
-        itemCount: state.filteredExpenses.length,
-        itemBuilder: (context, index) {
-          final expense = state.filteredExpenses[index];
-      
-          return Card(
-            color: Colors.grey[900],
-            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-            child: ListTile(
-              title: Text(
-                '${expense.codeNumber} - ${expense.amount} ${expense.currency}',
-                style: const TextStyle(color: Colors.white),
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            scrolledUnderElevation: 0.0,
+            title: const Text(
+              'Expenses',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
               ),
-              subtitle: Text(
-                expense.date.toString().split(' ')[0],
-                style: TextStyle(color: Colors.grey[400]),
-              ),
-              trailing: Text(
-                expense.treasury,
-                style: TextStyle(color: Colors.grey[400]),
-              ),
-              onTap: () =>
-                  context.read<ExpenseCubit>().fetchExpenseById(expense.id),
             ),
-          );
-        },
+            centerTitle: false,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: _buildBody(context, state),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, ExpenseState state) {
+    if (state is ExpenseLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    } else if (state is ExpenseError) {
+      return Center(
+        child: Text(
+          state.message,
+          style: const TextStyle(color: Colors.redAccent),
+        ),
+      );
+    } else if (state is ExpenseLoadingById || state is ExpenseLoaded) {
+      final expenses = (state is ExpenseLoaded)
+          ? state.filteredExpenses
+          : (state as ExpenseLoadingById).previousState is ExpenseLoaded
+              ? (state.previousState as ExpenseLoaded).filteredExpenses
+              : [];
+
+      return Stack(
+        children: [
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Search by ID, Code or Amount',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                    filled: true,
+                    fillColor: Colors.grey[900],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
+                  ),
+                  onChanged: (query) {
+                    context.read<ExpenseCubit>().searchExpenses(query);
+                  },
+                ),
+              ),
+              Expanded(
+                child: expenses.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No expenses found',
+                          style: TextStyle(color: Colors.grey[400]),
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          await context.read<ExpenseCubit>().fetchExpenses();
+                        },
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: expenses.length,
+                          separatorBuilder: (context, index) => const Gap(8),
+                          itemBuilder: (context, index) {
+                            final expense = expenses[index];
+
+                            return Card(
+                              color: Colors.grey[900],
+                              margin: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                title: Text(
+                                  '${expense.codeNumber} - ${expense.amount} ${expense.currency}',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                subtitle: Text(
+                                  expense.date.toString().split(' ')[0],
+                                  style: TextStyle(color: Colors.grey[400]),
+                                ),
+                                trailing: Text(
+                                  expense.treasury,
+                                  style: TextStyle(color: Colors.grey[400]),
+                                ),
+                                onTap: () => context
+                                    .read<ExpenseCubit>()
+                                    .fetchExpenseById(expense.id),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+              ),
+            ],
+          ),
+          if (state is ExpenseLoadingById)
+            const ModernLoadingOverlay(msg: "Expense"),
+        ],
+      );
+    }
+    return Center(
+      child: Text(
+        'No data available',
+        style: TextStyle(color: Colors.grey[400]),
       ),
     );
   }

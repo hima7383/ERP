@@ -11,6 +11,11 @@ class ReceiptError extends ReceiptState {
   ReceiptError(this.message);
 }
 
+class ReceiptLoadingById extends ReceiptState {
+  final ReceiptLoaded? previousState;
+  ReceiptLoadingById([this.previousState]);
+}
+
 class ReceiptLoaded extends ReceiptState {
   final List<Receipt> receipts;
   final List<Receipt> filteredReceipts;
@@ -81,6 +86,9 @@ class ReceiptCubit extends Cubit<ReceiptState> {
   }
 
   Future<void> fetchReceiptById(int id) async {
+    if (state is! ReceiptLoaded) return;
+    final currentState = state as ReceiptLoaded;
+    emit(ReceiptLoadingById(currentState));
     try {
       final fetchedReceipt = await _repository.fetchReceiptDetails(id);
       for (var receipt in _allReceipts) {
@@ -88,14 +96,12 @@ class ReceiptCubit extends Cubit<ReceiptState> {
           break;
         }
       }
-      if (state is ReceiptLoaded) {
-        final currentState = state as ReceiptLoaded;
-        emit(ReceiptLoaded(
-          currentState.receipts,
-          filteredReceipts: currentState.filteredReceipts,
-          selectedReceipt: fetchedReceipt,
-        ));
-      }
+
+      emit(ReceiptLoaded(
+        currentState.receipts,
+        filteredReceipts: currentState.filteredReceipts,
+        selectedReceipt: fetchedReceipt,
+      ));
     } catch (e) {
       emit(ReceiptError('Failed to load receipt: $e'));
     }

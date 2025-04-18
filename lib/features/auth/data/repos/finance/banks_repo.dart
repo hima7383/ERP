@@ -8,7 +8,8 @@ class BankAccountRepository {
     final token = await TokenStorage.getToken();
     try {
       final response = await http.get(
-        Uri.parse('https://erpdevelopment.runasp.net/Api/finance/bankAccount/list'),
+        Uri.parse(
+            'https://erpdevelopment.runasp.net/Api/finance/bankAccount/list'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -20,7 +21,9 @@ class BankAccountRepository {
 
         // Handle both direct array and wrapped responses
         if (responseBody is List) {
-          return responseBody.map((e) => BankAccountSummary.fromJson(e)).toList();
+          return responseBody
+              .map((e) => BankAccountSummary.fromJson(e))
+              .toList();
         } else if (responseBody is Map && responseBody.containsKey('data')) {
           return (responseBody['data'] as List)
               .map((e) => BankAccountSummary.fromJson(e))
@@ -40,7 +43,8 @@ class BankAccountRepository {
     final token = await TokenStorage.getToken();
     try {
       final response = await http.get(
-        Uri.parse('https://erpdevelopment.runasp.net/Api/finance/bankAccount/$id'),
+        Uri.parse(
+            'https://erpdevelopment.runasp.net/Api/finance/bankAccount/$id'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -49,7 +53,8 @@ class BankAccountRepository {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseBody = json.decode(response.body);
-        
+        print(responseBody['data']);
+
         // Handle both direct object and wrapped responses
         if (responseBody.containsKey('data')) {
           return BankAccount.fromJson(responseBody['data']);

@@ -10,7 +10,7 @@ class BankAccount {
   final int withdrawPermission; // 0, 1, or 2
   final List<Employee>? employeesWithDepositPermission;
   final List<Employee>? employeesWithWithdrawPermission;
-  final List<dynamic>? rolesWithDepositPermission; // Assuming this can be dynamic
+  final List<dynamic>? rolesWithDepositPermission;
   final List<dynamic>? rolesWithWithdrawPermission;
 
   BankAccount({
@@ -30,24 +30,37 @@ class BankAccount {
 
   factory BankAccount.fromJson(Map<String, dynamic> json) {
     return BankAccount(
-      bankAccountID: json['bankAccountID'],
-      accountHolderName: json['accountHolderName'],
-      bankName: json['bankName'],
-      accountNumber: json['accountNumber'],
-      currency: json['currency'],
-      status: json['status'],
-      depositPermission: json['depositPermission'],
-      withdrawPermission: json['withdrawPermission'],
-      employeesWithDepositPermission: json['employeesWhoHaveDepositPermessions'] != null
-          ? List<Employee>.from(json['employeesWhoHaveDepositPermessions']
-              .map((x) => Employee.fromJson(x)))
+      bankAccountID: json['bankAccountID'] as int? ?? 0,
+      accountHolderName: json['accountHolderName'] as String? ?? '',
+      bankName: json['bankName'] as String? ?? '',
+      accountNumber: json['accountNumber'] as String? ?? '',
+      currency: json['currency'] as String? ?? '',
+      status: json['status'] as int? ?? 0,
+      depositPermission: json['depositPermission'] as int? ?? 0,
+      withdrawPermission: json['withdrawPermission'] as int? ?? 0,
+      employeesWithDepositPermission:
+          json['employeesWhoHaveDepositPermessions'] != null
+              ? List<Employee>.from(
+                  (json['employeesWhoHaveDepositPermessions'] as List).map(
+                    (x) => Employee.fromJson(x as Map<String, dynamic>),
+                  ),
+                )
+              : null,
+      employeesWithWithdrawPermission:
+          json['employeesWhoHaveWithdrawPermessions'] != null
+              ? List<Employee>.from(
+                  (json['employeesWhoHaveWithdrawPermessions'] as List).map(
+                    (x) => Employee.fromJson(x as Map<String, dynamic>),
+                  ),
+                )
+              : null,
+      rolesWithDepositPermission: json['rolesWhoHaveDepositPermessions'] != null
+          ? List<dynamic>.from(json['rolesWhoHaveDepositPermessions'] as List)
           : null,
-      employeesWithWithdrawPermission: json['employeesWhoHaveWithdrawPermessions'] != null
-          ? List<Employee>.from(json['employeesWhoHaveWithdrawPermessions']
-              .map((x) => Employee.fromJson(x)))
+      rolesWithWithdrawPermission: json['rolesWhoHaveWithdrawPermessions'] !=
+              null
+          ? List<dynamic>.from(json['rolesWhoHaveWithdrawPermessions'] as List)
           : null,
-      rolesWithDepositPermission: json['rolesWhoHaveDepositPermessions'],
-      rolesWithWithdrawPermission: json['rolesWhoHaveWithdrawPermessions'],
     );
   }
 
@@ -61,10 +74,10 @@ class BankAccount {
       'status': status,
       'depositPermission': depositPermission,
       'withdrawPermission': withdrawPermission,
-      'employeesWhoHaveDepositPermessions': employeesWithDepositPermission
-          ?.map((e) => e.toJson()).toList(),
-      'employeesWhoHaveWithdrawPermessions': employeesWithWithdrawPermission
-          ?.map((e) => e.toJson()).toList(),
+      'employeesWhoHaveDepositPermessions':
+          employeesWithDepositPermission?.map((e) => e.toJson()).toList(),
+      'employeesWhoHaveWithdrawPermessions':
+          employeesWithWithdrawPermission?.map((e) => e.toJson()).toList(),
       'rolesWhoHaveDepositPermessions': rolesWithDepositPermission,
       'rolesWhoHaveWithdrawPermessions': rolesWithWithdrawPermission,
     };
@@ -94,14 +107,14 @@ class BankAccountSummary {
 
   factory BankAccountSummary.fromJson(Map<String, dynamic> json) {
     return BankAccountSummary(
-      bankAccountID: json['bankAccountID'],
-      accountHolderName: json['accountHolderName'],
-      bankName: json['bankName'],
-      accountNumber: json['accountNumber'],
-      currency: json['currency'],
-      status: json['status'],
-      depositPermission: json['depositPermission'],
-      withdrawPermission: json['withdrawPermission'],
+      bankAccountID: json['bankAccountID'] as int? ?? 0,
+      accountHolderName: json['accountHolderName'] as String? ?? '',
+      bankName: json['bankName'] as String? ?? '',
+      accountNumber: json['accountNumber'] as String? ?? '',
+      currency: json['currency'] as String? ?? '',
+      status: json['status'] as int? ?? 0,
+      depositPermission: json['depositPermission'] as int? ?? 0,
+      withdrawPermission: json['withdrawPermission'] as int? ?? 0,
     );
   }
 
@@ -118,6 +131,7 @@ class BankAccountSummary {
     };
   }
 }
+
 // employee.dart
 class Employee {
   final int employeeID;
@@ -194,40 +208,43 @@ class Employee {
 
   factory Employee.fromJson(Map<String, dynamic> json) {
     return Employee(
-      employeeID: json['employeeID'],
-      firstName: json['firstName'],
-      lastName: json['lastName'],
-      notes: json['notes'],
-      imagePath: json['imagePath'],
+      employeeID: json['employeeID'] as int? ?? 0,
+      firstName: json['firstName'] as String? ?? '',
+      lastName: json['lastName'] as String? ?? '',
+      notes: json['notes'] as String?,
+      imagePath: json['imagePath'] as String?,
       imageFile: json['imageFile'],
-      email: json['email'],
-      status: json['status'],
-      roleID: json['roleID'],
-      dateOfBirth: DateTime.parse(json['dateOfBirth']),
-      gender: json['gender'],
-      country: json['country'],
-      phoneNumber: json['phoneNumber'],
-      landline: json['landline'],
-      privateEmail: json['privateEmail'],
-      address1: json['address1'],
-      address2: json['address2'],
-      city: json['city'],
-      zone: json['zone'],
-      postcode: json['postcode'],
+      email: json['email'] as String? ?? '',
+      status: json['status'] as int? ?? 0,
+      roleID: json['roleID'] as String? ?? '',
+      dateOfBirth: DateTime.tryParse(json['dateOfBirth'] as String? ?? '') ??
+          DateTime.now(),
+      gender: json['gender'] as int? ?? 0,
+      country: json['country'] as String? ?? '',
+      phoneNumber: json['phoneNumber'] as String?,
+      landline: json['landline'] as String?,
+      privateEmail: json['privateEmail'] as String?,
+      address1: json['address1'] as String?,
+      address2: json['address2'] as String?,
+      city: json['city'] as String?,
+      zone: json['zone'] as String?,
+      postcode: json['postcode'] as String?,
       jobTypeID: json['jobTypeID'],
       departmentID: json['departmentID'],
-      hireDate: DateTime.parse(json['hireDate']),
+      hireDate: DateTime.tryParse(json['hireDate'] as String? ?? '') ??
+          DateTime.now(),
       employmentLevelId: json['employmentLevelId'],
       employmentTypeId: json['employmentTypeId'],
       directManagerId: json['directManagerId'],
-      useDefaultFinancialHistory: json['useDefaultFinancialHistory'],
+      useDefaultFinancialHistory:
+          json['useDefaultFinancialHistory'] as bool? ?? false,
       role: json['role'],
       department: json['department'],
       jobType: json['jobType'],
       employmentLevel: json['employmentLevel'],
       employmentType: json['employmentType'],
       directManager: json['directManager'],
-      tenantId: json['tenantId'],
+      tenantId: json['tenantId'] as String? ?? '',
     );
   }
 

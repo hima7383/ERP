@@ -1,7 +1,9 @@
+import 'package:erp/Core/widgets/modern_loading_overlay.dart';
 import 'package:erp/features/auth/data/entities/finanse/recipt_entity.dart';
 import 'package:erp/features/auth/logic/finance/recipt_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gap/gap.dart';
 
 class ReceiptScreen extends StatefulWidget {
   const ReceiptScreen({super.key});
@@ -13,126 +15,155 @@ class ReceiptScreen extends StatefulWidget {
 class _ReceiptScreenState extends State<ReceiptScreen> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        scrolledUnderElevation: 0.0,
-        title: const Text('Receipts', style: TextStyle(color: Colors.white)),
-      ),
-      body: BlocListener<ReceiptCubit, ReceiptState>(
-        listener: (context, state) {
-          if (state is ReceiptLoaded && state.selectedReceipt != null) {
-            _showReceiptDetailsPopup(context, state.selectedReceipt!);
-          }
-        },
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search by Code, Amount, Treasury, or Date',
-                  prefixIcon: const Icon(Icons.search, color: Colors.white),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey[800]!),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey[800]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.blue),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[900],
-                ),
-                style: const TextStyle(color: Colors.white),
-                onChanged: (query) {
-                  context.read<ReceiptCubit>().searchReceipts(query);
-                },
+    return BlocConsumer<ReceiptCubit, ReceiptState>(
+      listener: (context, state) {
+        if (state is ReceiptError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        }
+        if (state is ReceiptLoaded && state.selectedReceipt != null) {
+          _showReceiptDetailsPopup(context, state.selectedReceipt!);
+          context.read<ReceiptCubit>().resetSelectedReceipt();
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            scrolledUnderElevation: 0.0,
+            title: const Text(
+              'Receipts',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
               ),
             ),
-            Expanded(
-              child: BlocBuilder<ReceiptCubit, ReceiptState>(
-                builder: (context, state) {
-                  if (state is ReceiptLoading) {
-                    return const Center(
-                        child: CircularProgressIndicator(
-                      color: Colors.white,
-                    ));
-                  } else if (state is ReceiptError) {
-                    return Center(
-                      child: Text(
-                        state.message,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    );
-                  } else if (state is ReceiptLoaded) {
-                    final receipts = state.filteredReceipts;
-                    if (receipts.isEmpty) {
-                      return const Center(
-                          child: Text(
-                        'No receipts found',
-                        style: TextStyle(color: Colors.white),
-                      ));
-                    }
-                    return RefreshIndicator(
-                      onRefresh: () async {
-                        context.read<ReceiptCubit>().fetchReceipts();
-                      },
-                      child: ListView.builder(
-                        itemCount: receipts.length,
-                        itemBuilder: (context, index) {
-                          final receipt = receipts[index];
-                          return Card(
-                            color: Colors.grey[900],
-                            margin: const EdgeInsets.symmetric(
-                                vertical: 4, horizontal: 8),
-                            child: ListTile(
-                              title: Text(
-                                'Receipt #${receipt.codeNumber}',
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Amount: ${receipt.amount} ${receipt.currency}',
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Date: ${receipt.date.toString().split(' ')[0]}',
-                                    style: TextStyle(color: Colors.grey[400]),
-                                  ),
-                                ],
-                              ),
-                              trailing: const Icon(Icons.info_outline,
-                                  color: Colors.blue),
-                              onTap: () {
-                                context
-                                    .read<ReceiptCubit>()
-                                    .fetchReceiptById(receipt.id);
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  }
-                  return const Center(
-                      child: Text(
-                    'No data found',
-                    style: TextStyle(color: Colors.white),
-                  ));
-                },
-              ),
-            ),
-          ],
+            centerTitle: false,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: _buildBody(context, state),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, ReceiptState state) {
+    if (state is ReceiptLoading) {
+      return const Center(
+          child: CircularProgressIndicator(color: Colors.white));
+    } else if (state is ReceiptError) {
+      return Center(
+        child: Text(
+          state.message,
+          style: const TextStyle(color: Colors.redAccent),
         ),
+      );
+    } else if (state is ReceiptLoadingById || state is ReceiptLoaded) {
+      final receipts = (state is ReceiptLoaded)
+          ? state.filteredReceipts
+          : (state as ReceiptLoadingById).previousState is ReceiptLoaded
+              ? (state.previousState as ReceiptLoaded).filteredReceipts
+              : [];
+
+      return Stack(
+        children: [
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Search by Code, Amount, Treasury, or Date',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                    filled: true,
+                    fillColor: Colors.grey[900],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
+                  ),
+                  onChanged: (query) {
+                    context.read<ReceiptCubit>().searchReceipts(query);
+                  },
+                ),
+              ),
+              Expanded(
+                child: receipts.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No receipts found',
+                          style: TextStyle(color: Colors.grey[400]),
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          await context.read<ReceiptCubit>().fetchReceipts();
+                        },
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: receipts.length,
+                          separatorBuilder: (context, index) => const Gap(8),
+                          itemBuilder: (context, index) {
+                            final receipt = receipts[index];
+                            return Card(
+                              color: Colors.grey[900],
+                              margin: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: ListTile(
+                                title: Text(
+                                  'Receipt #${receipt.codeNumber}',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Amount: ${receipt.amount} ${receipt.currency}',
+                                      style:
+                                          const TextStyle(color: Colors.white),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Date: ${receipt.date.toString().split(' ')[0]}',
+                                      style: TextStyle(color: Colors.grey[400]),
+                                    ),
+                                  ],
+                                ),
+                                trailing: const Icon(Icons.info_outline,
+                                    color: Colors.blue),
+                                onTap: () {
+                                  context
+                                      .read<ReceiptCubit>()
+                                      .fetchReceiptById(receipt.id);
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+              ),
+            ],
+          ),
+          if (state is ReceiptLoadingById)
+            const ModernLoadingOverlay(msg: "Receipt"),
+        ],
+      );
+    }
+    return Center(
+      child: Text(
+        'No data available',
+        style: TextStyle(color: Colors.grey[400]),
       ),
     );
   }

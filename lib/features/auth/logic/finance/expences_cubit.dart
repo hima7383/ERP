@@ -13,6 +13,11 @@ class ExpenseError extends ExpenseState {
   ExpenseError(this.message);
 }
 
+class ExpenseLoadingById extends ExpenseState {
+  final ExpenseLoaded? previousState;
+  ExpenseLoadingById([this.previousState]);
+}
+
 class ExpenseLoaded extends ExpenseState {
   final List<Expense> expenses;
   final List<Expense> filteredExpenses;
@@ -112,6 +117,10 @@ class ExpenseCubit extends Cubit<ExpenseState> {
   }
 
   Future<void> fetchExpenseById(int id) async {
+    if (state is! ExpenseLoaded) return;
+    final currentState = state as ExpenseLoaded;
+    emit(ExpenseLoadingById(currentState));
+    print(state);
     try {
       final fetchedExpense = await _repository.fetchExpenseDetails(id);
       Expense? ok;
@@ -123,15 +132,13 @@ class ExpenseCubit extends Cubit<ExpenseState> {
       }
       //print(ok);
       final supplierNames = await fetchSupplierNamesForExpense(ok!);
-      if (state is ExpenseLoaded) {
-        final currentState = state as ExpenseLoaded;
-        emit(ExpenseLoaded(
-          supplierNames: supplierNames,
-          currentState.expenses,
-          filteredExpenses: currentState.filteredExpenses,
-          selectedExpense: fetchedExpense,
-        ));
-      }
+
+      emit(ExpenseLoaded(
+        supplierNames: supplierNames,
+        currentState.expenses,
+        filteredExpenses: currentState.filteredExpenses,
+        selectedExpense: fetchedExpense,
+      ));
     } catch (e) {
       emit(ExpenseError('Failed to load expense: $e'));
     }

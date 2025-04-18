@@ -19,6 +19,29 @@ class BankAccountError extends BankAccountState {
   const BankAccountError(this.message, {this.isRecoverable = true});
 }
 
+class BankAccountLoadingById extends BankAccountState {
+  final List<BankAccountSummary> bankAccounts;
+  final List<BankAccountSummary> filteredBankAccounts;
+  final Map<int, String> nameCache;
+  final Set<int> failedRequests;
+
+  const BankAccountLoadingById({
+    required this.bankAccounts,
+    required this.filteredBankAccounts,
+    required this.nameCache,
+    required this.failedRequests,
+  });
+
+  factory BankAccountLoadingById.fromPreviousState(BankAccountListLoaded state) {
+    return BankAccountLoadingById(
+      bankAccounts: state.bankAccounts,
+      filteredBankAccounts: state.filteredBankAccounts,
+      nameCache: state.nameCache,
+      failedRequests: state.failedRequests,
+    );
+  }
+}
+
 class BankAccountListLoaded extends BankAccountState {
   final List<BankAccountSummary> bankAccounts;
   final List<BankAccountSummary> filteredBankAccounts;
@@ -129,7 +152,7 @@ class BankAccountCubit extends Cubit<BankAccountState> {
     if (state is! BankAccountListLoaded) return;
     final currentState = state as BankAccountListLoaded;
 
-    emit(currentState.copyWith(selectedBankAccount: null));
+    emit(BankAccountLoadingById.fromPreviousState(currentState));
 
     try {
       final details = await _repository.fetchBankAccountDetails(accountId);
@@ -146,7 +169,8 @@ class BankAccountCubit extends Cubit<BankAccountState> {
       emit(currentState.copyWith(
         failedRequests: _failedRequests,
       ));
-      emit(BankAccountError('Failed to load bank account details: ${e.toString()}'));
+      emit(BankAccountError(
+          'Failed to load bank account details: ${e.toString()}'));
       emit(currentState); // Revert to previous state after showing error
     }
   }
@@ -171,12 +195,15 @@ class BankAccountCubit extends Cubit<BankAccountState> {
     final filtered = query.isEmpty
         ? _allBankAccounts
         : _allBankAccounts.where((account) {
-            final cachedName = _nameCache[account.bankAccountID]?.toLowerCase() ?? '';
+            final cachedName =
+                _nameCache[account.bankAccountID]?.toLowerCase() ?? '';
             return account.bankAccountID.toString().contains(query) ||
                 cachedName.contains(query.toLowerCase()) ||
                 account.accountNumber.contains(query) ||
                 account.bankName.toLowerCase().contains(query.toLowerCase()) ||
-                account.accountHolderName.toLowerCase().contains(query.toLowerCase());
+                account.accountHolderName
+                    .toLowerCase()
+                    .contains(query.toLowerCase());
           }).toList();
 
     emit(currentState.copyWith(
@@ -188,7 +215,8 @@ class BankAccountCubit extends Cubit<BankAccountState> {
   void _updateNameCache(int accountId, BankAccount details) {
     try {
       final name = '${details.accountHolderName} - ${details.bankName}';
-      _nameCache[accountId] = name.isNotEmpty ? name : 'Bank Account $accountId';
+      _nameCache[accountId] =
+          name.isNotEmpty ? name : 'Bank Account $accountId';
     } catch (e) {
       debugPrint('Error updating name cache for bank account $accountId: $e');
       _nameCache[accountId] = 'Bank Account $accountId';
@@ -235,7 +263,9 @@ class BankAccountCubit extends Cubit<BankAccountState> {
 
     final filtered = status == null
         ? _allBankAccounts
-        : _allBankAccounts.where((account) => account.status == status).toList();
+        : _allBankAccounts
+            .where((account) => account.status == status)
+            .toList();
 
     emit(currentState.copyWith(
       filteredBankAccounts: filtered,

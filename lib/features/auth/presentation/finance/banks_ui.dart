@@ -1,3 +1,4 @@
+import 'package:erp/Core/widgets/modern_loading_overlay.dart';
 import 'package:erp/features/auth/data/entities/finanse/banks_entity.dart';
 import 'package:erp/features/auth/logic/finance/banks_cubit.dart';
 import 'package:flutter/material.dart';
@@ -29,69 +30,143 @@ class _BankAccountScreenState extends State<BankAccountScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text(
-          'Bank Accounts',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-          ),
-        ),
-        backgroundColor: Colors.black,
-        scrolledUnderElevation: 0.0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_alt),
-            onPressed: () => _showFilterMenu(context),
-            tooltip: 'Filter accounts',
-          ),
-        ],
-      ),
-      body: BlocConsumer<BankAccountCubit, BankAccountState>(
-        listener: (context, state) {
-          if (state is BankAccountListLoaded &&
-              state.selectedBankAccount != null) {
-            context.read<BankAccountCubit>().resetSelectedBankAccount();
-            _showBankAccountDetailsPopup(context, state.selectedBankAccount!);
-          }
-        },
-        builder: (context, state) {
-          if (state is BankAccountLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            );
-          }
-          if (state is BankAccountError) {
-            return Center(
-              child: Text(
-                state.message,
-                style: const TextStyle(color: Colors.red),
+    return BlocConsumer<BankAccountCubit, BankAccountState>(
+      listener: (context, state) {
+        if (state is BankAccountError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        }
+        if (state is BankAccountListLoaded &&
+            state.selectedBankAccount != null) {
+          _showBankAccountDetailsPopup(context, state.selectedBankAccount!);
+          context.read<BankAccountCubit>().resetSelectedBankAccount();
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            title: const Text(
+              'Bank Accounts',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
               ),
-            );
-          }
-          if (state is! BankAccountListLoaded) {
-            return Center(
-              child: Text(
-                'No bank accounts found',
-                style: TextStyle(color: Colors.grey[400]),
-              ),
-            );
-          }
-
-          return Column(
-            children: [
-              _buildSearchBar(context),
-              Expanded(
-                child: _buildBankAccountList(
-                    state, context.read<BankAccountCubit>()),
+            ),
+            backgroundColor: Colors.black,
+            scrolledUnderElevation: 0.0,
+            iconTheme: const IconThemeData(color: Colors.white),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.filter_alt),
+                onPressed: () => _showFilterMenu(context),
+                tooltip: 'Filter accounts',
               ),
             ],
-          );
-        },
+          ),
+          body: _buildBody(context, state),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, BankAccountState state) {
+    if (state is BankAccountLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    } else if (state is BankAccountError) {
+      return Center(
+        child: Text(
+          state.message,
+          style: const TextStyle(color: Colors.redAccent),
+        ),
+      );
+    } else if (state is BankAccountLoadingById ||
+        state is BankAccountListLoaded) {
+      final accounts = (state is BankAccountListLoaded)
+          ? state.filteredBankAccounts
+          : (state as BankAccountLoadingById).filteredBankAccounts;
+
+      final nameCache = (state is BankAccountListLoaded)
+          ? state.nameCache
+          : (state as BankAccountLoadingById).nameCache;
+
+      return Stack(
+        children: [
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search bank accounts...',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                    filled: true,
+                    fillColor: Colors.grey[900],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                  onChanged: (query) {
+                    context.read<BankAccountCubit>().searchBankAccounts(query);
+                  },
+                ),
+              ),
+              Expanded(
+                child: accounts.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No bank accounts found',
+                          style: TextStyle(color: Colors.grey[400]),
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          await context
+                              .read<BankAccountCubit>()
+                              .fetchBankAccounts();
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: ListView.separated(
+                            itemCount: accounts.length,
+                            separatorBuilder: (context, index) => const Gap(8),
+                            itemBuilder: (context, index) {
+                              final account = accounts[index];
+                              return _BankAccountCard(
+                                account: account,
+                                nameCache: nameCache,
+                                onTap: () => context
+                                    .read<BankAccountCubit>()
+                                    .fetchBankAccountById(
+                                        account.bankAccountID),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+          if (state is BankAccountLoadingById)
+            const ModernLoadingOverlay(msg: "Account"),
+        ],
+      );
+    }
+    return Center(
+      child: Text(
+        'No data available',
+        style: TextStyle(color: Colors.grey[400]),
       ),
     );
   }
@@ -165,66 +240,6 @@ class _BankAccountScreenState extends State<BankAccountScreen>
         Navigator.pop(context);
         onTap();
       },
-    );
-  }
-
-  Widget _buildSearchBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: 'Search bank accounts...',
-          hintStyle: TextStyle(color: Colors.grey[400]),
-          prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
-          filled: true,
-          fillColor: Colors.grey[900],
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            vertical: 14,
-            horizontal: 16,
-          ),
-        ),
-        style: const TextStyle(color: Colors.white),
-        onChanged: (query) {
-          context.read<BankAccountCubit>().searchBankAccounts(query);
-        },
-      ),
-    );
-  }
-
-  Widget _buildBankAccountList(
-      BankAccountListLoaded state, BankAccountCubit cubit) {
-    return RefreshIndicator(
-      color: Colors.blue,
-      onRefresh: () async {
-        await cubit.fetchBankAccounts();
-      },
-      child: RefreshIndicator(
-        onRefresh: () async {
-          await cubit.fetchBankAccounts();
-        },
-        child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: state.filteredBankAccounts.length,
-          separatorBuilder: (context, index) => const Gap(8),
-          itemBuilder: (context, index) {
-            final account = state.filteredBankAccounts[index];
-            return _BankAccountCard(
-              account: account,
-              nameCache: state.nameCache,
-              onTap: () {
-                context
-                    .read<BankAccountCubit>()
-                    .fetchBankAccountById(account.bankAccountID);
-              },
-            );
-          },
-        ),
-      ),
     );
   }
 
