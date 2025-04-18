@@ -12,6 +12,29 @@ class CustomerLoading extends CustomerState {
   const CustomerLoading();
 }
 
+class CustomerLoadingById extends CustomerState {
+  final List<Customer> customers;
+  final List<Customer> filteredCustomers;
+  final Map<int, String> nameCache;
+  final Set<int> failedRequests;
+
+  const CustomerLoadingById({
+    required this.customers,
+    required this.filteredCustomers,
+    required this.nameCache,
+    required this.failedRequests,
+  });
+
+  factory CustomerLoadingById.fromPreviousState(CustomerListLoaded state) {
+    return CustomerLoadingById(
+      customers: state.customers,
+      filteredCustomers: state.filteredCustomers,
+      nameCache: state.nameCache,
+      failedRequests: state.failedRequests,
+    );
+  }
+}
+
 class CustomerError extends CustomerState {
   final String message;
   final bool isRecoverable;
@@ -130,7 +153,7 @@ class CustomerCubit extends Cubit<CustomerState> {
     if (state is! CustomerListLoaded) return;
     final currentState = state as CustomerListLoaded;
 
-    emit(currentState.copyWith(selectedCustomer: null));
+    emit(CustomerLoadingById.fromPreviousState(currentState));
 
     try {
       final type = await _repository.getCustomerType(customerId);
