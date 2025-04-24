@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:erp/Core/Helper/token_helper.dart';
 import 'package:erp/features/auth/data/entities/stock/prdouct.dart';
 import 'package:erp/features/auth/data/entities/stock/product_response.dart';
@@ -7,7 +8,12 @@ import 'package:http/http.dart' as http;
 class ProductRepository {
   ProductRepository();
 
+    final Connectivity _connectivity = Connectivity();
   Future<ProductResponse> fetchProducts({int page = 1}) async {
+    final connectivityResult = await _connectivity.checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      throw Exception("No internet connection");
+    }
     final token = await TokenStorage.getToken();
     final url = Uri.parse(
         'https://erpdevelopment.runasp.net/Api/inventory/product-and-service/Paginated');

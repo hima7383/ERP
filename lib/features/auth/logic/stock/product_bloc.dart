@@ -6,7 +6,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 abstract class ProductState {}
 
 class ProductLoading extends ProductState {}
-
+class ProductOffline extends ProductState {
+  ProductOffline();
+}
 class ProductError extends ProductState {
   final String message;
   ProductError(this.message);
@@ -59,9 +61,15 @@ class ProductCubit extends Cubit<ProductState> {
         hasNextPage: _hasNextPage,
         hasPreviousPage: _hasPreviousPage,
       ));
-    } catch (e) {
+    }
+    on Exception catch (e) {
+    if (e.toString().contains("No internet connection")) {
+      emit(ProductOffline()); // New state for offline mode
+    }
+     else {
       emit(ProductError('Failed to load products: $e'));
     }
+  }
   }
 
   void loadNextPage() {

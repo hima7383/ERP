@@ -22,6 +22,7 @@ import 'package:erp/features/auth/logic/accounts/accounts_cubit.dart';
 import 'package:erp/features/auth/logic/accounts/assests_cubit.dart';
 import 'package:erp/features/auth/logic/accounts/daily.dart';
 import 'package:erp/features/auth/logic/clients/clients_cubit.dart';
+import 'package:erp/features/auth/logic/connecting/connect_cubit.dart';
 import 'package:erp/features/auth/logic/finance/banks_cubit.dart';
 import 'package:erp/features/auth/logic/finance/expences_cubit.dart';
 import 'package:erp/features/auth/logic/finance/recipt_cubit.dart';
@@ -37,6 +38,7 @@ import 'package:erp/features/auth/logic/sales/sendata/Salesinvoicecreation_cubit
 import 'package:erp/features/auth/logic/stock/product_bloc.dart';
 import 'package:erp/features/auth/logic/stock/price_list_cubit.dart';
 import 'package:erp/features/auth/logic/stock/warehouse_cubit.dart';
+import 'package:erp/features/auth/presentation/connection/connection_screen.dart';
 import 'package:erp/features/auth/presentation/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -53,6 +55,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
         providers: [
+          BlocProvider<ConnectivityCubit>(create: (_) => ConnectivityCubit()),
           // Product Cubit
           BlocProvider(
             create: (context) =>
@@ -140,7 +143,9 @@ class MyApp extends StatelessWidget {
         child: MaterialApp(
           theme: ThemeData.dark(),
           navigatorObservers: [routeObserver],
-          home: SplashScreen(),
+          home: NetworkAwareApp(
+            child: SplashScreen(),
+          ),  
         ));
   }
 }
