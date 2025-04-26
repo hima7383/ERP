@@ -14,9 +14,36 @@ class CustomerScreen extends StatelessWidget {
     return BlocConsumer<CustomerCubit, CustomerState>(
       listener: (context, state) {
         if (state is CustomerError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+           Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.wifi_off, size: 40, color: Colors.grey[400]),
+                          const SizedBox(height: 16),
+                          Text(
+                            "No internet connection",
+                            style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Please check your connection",
+                            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[700],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                            ),
+                            ),
+                            onPressed: () => context.read<CustomerCubit>().fetchCustomers(),
+                            child: const Text("Retry", style: TextStyle(color: Colors.white)),
+                          
+                          )
+                        ],
+                      ),
+                    );
         }
         if (state is CustomerListLoaded && state.selectedCustomer != null) {
           _showCustomerDetailsPopup(context, state.selectedCustomer!);

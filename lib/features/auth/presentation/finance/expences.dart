@@ -13,9 +13,36 @@ class ExpenseScreen extends StatelessWidget {
     return BlocConsumer<ExpenseCubit, ExpenseState>(
       listener: (context, state) {
         if (state is ExpenseError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+          Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.wifi_off, size: 40, color: Colors.grey[400]),
+                          const SizedBox(height: 16),
+                          Text(
+                            "No internet connection",
+                            style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Please check your connection",
+                            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[700],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                            ),
+                            ),
+                            onPressed: () => context.read<ExpenseCubit>().fetchExpenses(),
+                            child: const Text("Retry", style: TextStyle(color: Colors.white)),
+                          
+                          )
+                        ],
+                      ),
+                    );
         }
         if (state is ExpenseLoaded && state.selectedExpense != null) {
           _showExpenseDetailsPopup(
@@ -55,12 +82,36 @@ class ExpenseScreen extends StatelessWidget {
         child: CircularProgressIndicator(color: Colors.white),
       );
     } else if (state is ExpenseError) {
-      return Center(
-        child: Text(
-          state.message,
-          style: const TextStyle(color: Colors.redAccent),
-        ),
-      );
+      return  Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.wifi_off, size: 40, color: Colors.grey[400]),
+                          const SizedBox(height: 16),
+                          Text(
+                            "No internet connection",
+                            style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Please check your connection",
+                            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[700],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                            ),
+                            ),
+                            onPressed: () => context.read<ExpenseCubit>().fetchExpenses(),
+                            child: const Text("Retry", style: TextStyle(color: Colors.white)),
+                          
+                          )
+                        ],
+                      ),
+                    );
     } else if (state is ExpenseLoadingById || state is ExpenseLoaded) {
       final expenses = (state is ExpenseLoaded)
           ? state.filteredExpenses

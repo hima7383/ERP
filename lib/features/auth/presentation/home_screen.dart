@@ -14,6 +14,7 @@ import 'package:erp/features/auth/presentation/purchase/purchase_invoicerefund.d
 import 'package:erp/features/auth/presentation/purchase/supplier.dart';
 import 'package:erp/features/auth/presentation/sales/quotation_screen.dart';
 import 'package:erp/features/auth/presentation/sales/recuringinvoice_screen.dart';
+import 'package:erp/features/auth/presentation/sales/salesinvoice_refund_screen.dart';
 import 'package:erp/features/auth/presentation/sales/salesinvoice_screen.dart';
 import 'package:erp/features/auth/presentation/stock/products.dart';
 import 'package:erp/features/auth/presentation/stock/price_list_screen.dart';
@@ -28,7 +29,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
+  int _selectedIndex = exampleMethod();
   final List<Widget> _screens = [
     ProductsScreen(),
     PriceListScreen(),
@@ -47,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
     SalesInvoiceScreen(),
     RecurringInvoiceScreen(),
     QuotationScreen(),
+    SalesInvoiceRefundScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -96,50 +98,50 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  //if (ActiveModules.activeModules[8] == 1)
-                  _buildModuleTile(
-                    title: 'Warehouse',
-                    icon: Icons.warehouse_outlined,
-                    children: [
-                      _buildSubModuleTile(
-                        title: 'Products',
-                        icon: Icons.inventory_2_outlined,
-                        onTap: () => _onItemTapped(0),
-                      ),
-                      _buildSubModuleTile(
-                        title: 'Price List',
-                        icon: Icons.price_change_outlined,
-                        onTap: () => _onItemTapped(1),
-                      ),
-                      _buildSubModuleTile(
-                        title: 'Warehouse',
-                        icon: Icons.warehouse,
-                        onTap: () => _onItemTapped(2),
-                      ),
-                    ],
-                  ),
-                  // if (ActiveModules.activeModules[2] == 1)
-                  _buildModuleTile(
-                    title: 'Accounts',
-                    icon: Icons.account_balance_outlined,
-                    children: [
-                      _buildSubModuleTile(
-                        title: 'Accounts',
-                        icon: Icons.account_balance_wallet_outlined,
-                        onTap: () => _onItemTapped(3),
-                      ),
-                      _buildSubModuleTile(
-                        title: 'Assets',
-                        icon: Icons.assessment_outlined,
-                        onTap: () => _onItemTapped(4),
-                      ),
-                      _buildSubModuleTile(
-                        title: 'Daily Entries',
-                        icon: Icons.assessment_outlined,
-                        onTap: () => _onItemTapped(5),
-                      ),
-                    ],
-                  ),
+                  if (ActiveModules.activeModules[7] == 1)
+                    _buildModuleTile(
+                      title: 'Inventory',
+                      icon: Icons.warehouse_outlined,
+                      children: [
+                        _buildSubModuleTile(
+                          title: 'Products',
+                          icon: Icons.inventory_2_outlined,
+                          onTap: () => _onItemTapped(0),
+                        ),
+                        _buildSubModuleTile(
+                          title: 'Price List',
+                          icon: Icons.price_change_outlined,
+                          onTap: () => _onItemTapped(1),
+                        ),
+                        _buildSubModuleTile(
+                          title: 'Warehouse',
+                          icon: Icons.warehouse,
+                          onTap: () => _onItemTapped(2),
+                        ),
+                      ],
+                    ),
+                  if (ActiveModules.activeModules[1] == 1)
+                    _buildModuleTile(
+                      title: 'Accounts',
+                      icon: Icons.account_balance_outlined,
+                      children: [
+                        _buildSubModuleTile(
+                          title: 'Accounts',
+                          icon: Icons.account_balance_wallet_outlined,
+                          onTap: () => _onItemTapped(3),
+                        ),
+                        _buildSubModuleTile(
+                          title: 'Assets',
+                          icon: Icons.assessment_outlined,
+                          onTap: () => _onItemTapped(4),
+                        ),
+                        _buildSubModuleTile(
+                          title: 'Daily Entries',
+                          icon: Icons.assessment_outlined,
+                          onTap: () => _onItemTapped(5),
+                        ),
+                      ],
+                    ),
                   _buildModuleTile(
                     title: 'clients',
                     icon: Icons.person_2_outlined,
@@ -151,77 +153,82 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  //  if (ActiveModules.activeModules[9] == 1)
-                  _buildModuleTile(
-                    title: 'Purchase',
-                    icon: Icons.shop,
-                    children: [
-                      _buildSubModuleTile(
-                        title: 'Purchase Invoices',
-                        icon: Icons.receipt_outlined,
-                        onTap: () => _onItemTapped(7),
-                      ),
-                      _buildSubModuleTile(
-                        title: 'Purchase return Invoices',
-                        icon: Icons.shop_sharp,
-                        onTap: () => _onItemTapped(8),
-                      ),
-                      _buildSubModuleTile(
-                        title: 'Debit Note',
-                        icon: Icons.credit_card,
-                        onTap: () => _onItemTapped(9),
-                      ),
-                      _buildSubModuleTile(
-                        title: 'Supplier',
-                        icon: Icons.support,
-                        onTap: () => _onItemTapped(10),
-                      ),
-                    ],
-                  ),
-                  //    if (ActiveModules.activeModules[7] == 1)
-                  _buildModuleTile(
-                    title: 'Finance',
-                    icon: Icons.attach_money,
-                    children: [
-                      _buildSubModuleTile(
-                        title: 'Expenses',
-                        icon: Icons.money_off,
-                        onTap: () => _onItemTapped(11),
-                      ),
-                      _buildSubModuleTile(
-                        title: 'Recipts',
-                        icon: Icons.receipt_long,
-                        onTap: () => _onItemTapped(12),
-                      ),
-                      _buildSubModuleTile(
-                        title: 'Banks',
-                        icon: Icons.balance,
-                        onTap: () => _onItemTapped(13),
-                      ),
-                    ],
-                  ),
-                  //    if (ActiveModules.activeModules[3] == 1)
-                  _buildModuleTile(
-                    title: 'Sales',
-                    icon: Icons.sell_rounded,
-                    children: [
-                      _buildSubModuleTile(
-                        title: 'sales Invoices',
-                        icon: Icons.receipt_sharp,
-                        onTap: () => _onItemTapped(14),
-                      ),
-                      _buildSubModuleTile(
-                        title: 'sales recuring Invoices',
-                        icon: Icons.receipt_long_outlined,
-                        onTap: () => _onItemTapped(15),
-                      ),
-                      _buildSubModuleTile(
-                        title: 'Quotation',
-                        icon: Icons.credit_card,
-                        onTap: () => _onItemTapped(16),
-                      ),
-                    ],
-                  ),
+                  if (ActiveModules.activeModules[8] == 1)
+                    _buildModuleTile(
+                      title: 'Purchase',
+                      icon: Icons.shop,
+                      children: [
+                        _buildSubModuleTile(
+                          title: 'Purchase Invoices',
+                          icon: Icons.receipt_outlined,
+                          onTap: () => _onItemTapped(7),
+                        ),
+                        _buildSubModuleTile(
+                          title: 'Purchase return Invoices',
+                          icon: Icons.shop_sharp,
+                          onTap: () => _onItemTapped(8),
+                        ),
+                        _buildSubModuleTile(
+                          title: 'Debit Note',
+                          icon: Icons.credit_card,
+                          onTap: () => _onItemTapped(9),
+                        ),
+                        _buildSubModuleTile(
+                          title: 'Supplier',
+                          icon: Icons.support,
+                          onTap: () => _onItemTapped(10),
+                        ),
+                      ],
+                    ),
+                  if (ActiveModules.activeModules[6] == 1)
+                    _buildModuleTile(
+                      title: 'Finance',
+                      icon: Icons.attach_money,
+                      children: [
+                        _buildSubModuleTile(
+                          title: 'Expenses',
+                          icon: Icons.money_off,
+                          onTap: () => _onItemTapped(11),
+                        ),
+                        _buildSubModuleTile(
+                          title: 'Recipts',
+                          icon: Icons.receipt_long,
+                          onTap: () => _onItemTapped(12),
+                        ),
+                        _buildSubModuleTile(
+                          title: 'Banks',
+                          icon: Icons.balance,
+                          onTap: () => _onItemTapped(13),
+                        ),
+                      ],
+                    ),
+                  if (ActiveModules.activeModules[2] == 1)
+                    _buildModuleTile(
+                      title: 'Sales',
+                      icon: Icons.sell_rounded,
+                      children: [
+                        _buildSubModuleTile(
+                          title: 'sales Invoices',
+                          icon: Icons.receipt_sharp,
+                          onTap: () => _onItemTapped(14),
+                        ),
+                        _buildSubModuleTile(
+                          title: 'sales recuring Invoices',
+                          icon: Icons.receipt_long_outlined,
+                          onTap: () => _onItemTapped(15),
+                        ),
+                        _buildSubModuleTile(
+                          title: 'Quotation',
+                          icon: Icons.credit_card,
+                          onTap: () => _onItemTapped(16),
+                        ),
+                        _buildSubModuleTile(
+                          title: 'Sales return Invoices',
+                          icon: Icons.shop_2_outlined,
+                          onTap: () => _onItemTapped(17),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -335,13 +342,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   static int exampleMethod() {
-    int result = 0;
-    for (int i = 0; i <= 9; i++) {
-      if (ActiveModules.activeModules[i] == 1) {
-        result = i;
-        break;
-      }
-    }
-    return result;
+    /*  if (ActiveModules.activeModules[8] == 1) return 0;
+     if (ActiveModules.activeModules[2] == 1) return 3;
+     if (ActiveModules.activeModules[9] == 1) return 7;
+     if (ActiveModules.activeModules[7] == 1) return 11;
+     if (ActiveModules.activeModules[3] == 1) return 14;*/
+    return 0;
   }
 }

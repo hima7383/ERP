@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:erp/Core/widgets/rout_observer.dart';
 import 'package:erp/features/auth/data/repos/accounts/accounts_repo.dart';
 import 'package:erp/features/auth/data/repos/accounts/daily.dart';
+import 'package:erp/features/auth/data/repos/activemodules/active_modules_repo.dart';
 import 'package:erp/features/auth/data/repos/clients/clients_repo.dart';
 import 'package:erp/features/auth/data/repos/finance/banks_repo.dart';
 import 'package:erp/features/auth/data/repos/finance/expencses_repo.dart';
@@ -13,6 +14,7 @@ import 'package:erp/features/auth/data/repos/purchase/supplier_repo.dart';
 import 'package:erp/features/auth/data/repos/sales/quotation_repo.dart';
 import 'package:erp/features/auth/data/repos/sales/recuringinvoices_repo.dart';
 import 'package:erp/features/auth/data/repos/sales/salesInvoices_repo.dart';
+import 'package:erp/features/auth/data/repos/sales/salesinvoice_refund_repo.dart';
 import 'package:erp/features/auth/data/repos/sales/sendata/salesinvoicecreate_repo.dart';
 import 'package:erp/features/auth/data/repos/stock/product_repo.dart';
 import 'package:erp/features/auth/data/repos/stock/warehouse_permesions.dart';
@@ -34,6 +36,7 @@ import 'package:erp/features/auth/logic/purchase/supplier_cubit.dart';
 import 'package:erp/features/auth/logic/sales/quotation_cubit.dart';
 import 'package:erp/features/auth/logic/sales/recuringinvoice_cubit.dart';
 import 'package:erp/features/auth/logic/sales/salesInvoice_cubit.dart';
+import 'package:erp/features/auth/logic/sales/salesinvoice_refund_cubit.dart';
 import 'package:erp/features/auth/logic/sales/sendata/Salesinvoicecreation_cubit.dart';
 import 'package:erp/features/auth/logic/stock/product_bloc.dart';
 import 'package:erp/features/auth/logic/stock/price_list_cubit.dart';
@@ -119,6 +122,10 @@ class MyApp extends StatelessWidget {
             create: (_) =>
                 BankAccountCubit(BankAccountRepository())..fetchBankAccounts(),
           ),
+           BlocProvider(
+            create: (_) =>
+                SalesInvoiceRefundCubit(RefundInvoiceRepository(),CustomerRepository())..fetchSalesInvoices(),
+          ),
           BlocProvider(
             create: (_) => SalesInvoiceCubit(
                 SalesInvoiceRepository(), CustomerRepository())
@@ -137,7 +144,7 @@ class MyApp extends StatelessWidget {
                 QuotationCubit(QuotationRepository(), CustomerRepository())
                   ..fetchQuotations(),
           ),
-          BlocProvider(create: (_) => LoginBloc()),
+          BlocProvider(create: (_) => LoginBloc(CompanyRepository())),
           BlocProvider(create: (_)=>SalesInvoiceCubitcreate(SalesInvoiceRepositoryImpl(Dio()))),
         ],
         child: MaterialApp(

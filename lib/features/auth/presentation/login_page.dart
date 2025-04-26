@@ -1,3 +1,4 @@
+import 'package:erp/features/auth/data/repos/activemodules/active_modules_repo.dart';
 import 'package:erp/features/auth/logic/login_bloc.dart';
 import 'package:erp/features/auth/presentation/home_screen.dart';
 import 'package:erp/features/auth/presentation/register.dart';
@@ -17,24 +18,41 @@ class LoginPage extends StatelessWidget {
     final size = MediaQuery.of(context).size;
 
     return BlocProvider(
-      create: (_) => LoginBloc(),
+      create: (_) => LoginBloc(CompanyRepository()), // Make sure to pass your CompanyRepository
       child: BlocConsumer<LoginBloc, LoginState>(
         listener: (context, state) {
-          if (state is LoginSuccess) {
+          if (state is LoginFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.error),
+                backgroundColor: Colors.red,
+              ),
+            );
+          } else if (state is CompanyDataFetchError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("no Internet connection"),
+                backgroundColor: Colors.red,
+              ),
+            );
+            Future.delayed(const Duration(seconds: 1), () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => LoginPage()),
+                (Route<dynamic> route) => false,
+              );
+            });
+          } else if (state is CompanyDataFetched) {
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => HomeScreen()),
               (Route<dynamic> route) => false,
             );
-          } else if (state is LoginFailure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.error)),
-            );
           }
         },
         builder: (context, state) {
           return Scaffold(
-            backgroundColor: Colors.black, // Dark background
+            backgroundColor: Colors.black,
             body: SingleChildScrollView(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: size.width * 0.08),
@@ -44,7 +62,7 @@ class LoginPage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Gap(size.height * 0.15), // Top spacing
+                      Gap(size.height * 0.15),
                       Center(
                         child: Text(
                           "Welcome Back!",
@@ -60,14 +78,13 @@ class LoginPage extends StatelessWidget {
                         controller: _emailController,
                         decoration: InputDecoration(
                           labelText: "Email",
-                          prefixIcon:
-                              Icon(Icons.email, color: Colors.grey[400]),
+                          prefixIcon: Icon(Icons.email, color: Colors.grey[400]),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
                           filled: true,
-                          fillColor: Colors.grey[900], // Dark input field
+                          fillColor: Colors.grey[900],
                           labelStyle: TextStyle(color: Colors.grey[400]),
                           hintStyle: TextStyle(color: Colors.grey[400]),
                           contentPadding: const EdgeInsets.symmetric(
@@ -98,7 +115,7 @@ class LoginPage extends StatelessWidget {
                             borderSide: BorderSide.none,
                           ),
                           filled: true,
-                          fillColor: Colors.grey[900], // Dark input field
+                          fillColor: Colors.grey[900],
                           labelStyle: TextStyle(color: Colors.grey[400]),
                           hintStyle: TextStyle(color: Colors.grey[400]),
                           contentPadding: const EdgeInsets.symmetric(
@@ -116,11 +133,12 @@ class LoginPage extends StatelessWidget {
                         },
                       ),
                       Gap(size.height * 0.03),
-                      if (state is LoginLoading)
+                      if (state is LoginLoading || state is FetchingCompanyData)
                         const Center(
-                            child: CircularProgressIndicator(
-                          color: Colors.white,
-                        ))
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                          ),
+                        )
                       else
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
@@ -132,10 +150,12 @@ class LoginPage extends StatelessWidget {
                           ),
                           onPressed: () {
                             if (_formKey.currentState!.validate()) {
-                              context.read<LoginBloc>().add(LoginSubmitted(
-                                    email: _emailController.text.trim(),
-                                    password: _passwordController.text.trim(),
-                                  ));
+                              context.read<LoginBloc>().add(
+                                    LoginSubmitted(
+                                      email: _emailController.text.trim(),
+                                      password: _passwordController.text.trim(),
+                                    ),
+                                  );
                             }
                           },
                           child: const Text(
@@ -144,7 +164,9 @@ class LoginPage extends StatelessWidget {
                           ),
                         ),
                       TextButton(
-                        onPressed: () {/* Forgot password */},
+                        onPressed: () {
+                          // Forgot password implementation
+                        },
                         child: Text(
                           "Forgot Password?",
                           style: TextStyle(color: Colors.grey[300]),
@@ -163,7 +185,7 @@ class LoginPage extends StatelessWidget {
                           style: TextStyle(color: Colors.grey[300]),
                         ),
                       ),
-                      Gap(size.height * 0.1), // Bottom spacing
+                      Gap(size.height * 0.1),
                     ],
                   ),
                 ),

@@ -60,8 +60,7 @@ class AssetsScreen extends StatelessWidget {
           } else if (state.sequenceStatus == DataStatus.failure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                    state.errorMessage ?? 'Failed to load sequence names.'),
+                content: Text('Check your internet connection and try again'),
                 backgroundColor: Colors.redAccent,
                 duration: Duration(seconds: 3),
               ),
@@ -74,7 +73,7 @@ class AssetsScreen extends StatelessWidget {
             // Avoid showing asset error if sequence loading is in progress or just finished
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Asset loading failed: ${state.errorMessage!}'),
+                content: Text('Check your internet connection and try again'),
                 backgroundColor: Colors.orangeAccent,
                 duration: Duration(seconds: 3),
               ),
@@ -110,21 +109,31 @@ class AssetsScreen extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.cloud_off,
-                                color: Colors.grey, size: 40),
-                            const SizedBox(height: 10),
+                            Icon(Icons.wifi_off,
+                                size: 40, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
                             Text(
-                              state.errorMessage ?? 'Failed to load assets',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: Colors.grey),
+                              "No internet connection",
+                              style: TextStyle(
+                                  color: Colors.grey[400], fontSize: 16),
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Please check your connection",
+                              style: TextStyle(
+                                  color: Colors.grey[500], fontSize: 14),
+                            ),
+                            const SizedBox(height: 24),
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey[800]),
+                                backgroundColor: Colors.blue[700],
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
                               onPressed: () =>
                                   context.read<AssetsCubit>().fetchAssets(),
-                              child: const Text('Retry',
+                              child: const Text("Retry",
                                   style: TextStyle(color: Colors.white)),
                             )
                           ],

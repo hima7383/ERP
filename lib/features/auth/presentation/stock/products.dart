@@ -11,7 +11,11 @@ class ProductsScreen extends StatefulWidget {
 }
 
 class _ProductsScreenState extends State<ProductsScreen> with RouteAware {
-
+@override
+  void initState() {
+   context.read<ProductCubit>().fetchProducts();
+    super.initState();
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(

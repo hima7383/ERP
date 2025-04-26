@@ -1,60 +1,35 @@
 import 'package:erp/Core/widgets/genricori_dialogbox.dart';
 import 'package:erp/Core/widgets/modern_loading_overlay.dart';
-import 'package:erp/features/auth/data/entities/sales/salesInvoice_entity.dart';
-import 'package:erp/features/auth/logic/sales/salesInvoice_cubit.dart';
-import 'package:erp/features/auth/presentation/sales/sendata/salesinvoicecreate_screen.dart';
+import 'package:erp/features/auth/data/entities/sales/salesinvoice_refund_entiy.dart';
+import 'package:erp/features/auth/logic/sales/salesinvoice_refund_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
 
-class SalesInvoiceScreen extends StatefulWidget {
-  const SalesInvoiceScreen({super.key});
+class SalesInvoiceRefundScreen extends StatefulWidget {
+  const SalesInvoiceRefundScreen({super.key});
 
   @override
-  State<SalesInvoiceScreen> createState() => _SalesInvoiceScreenState();
+  State<SalesInvoiceRefundScreen> createState() =>
+      _SalesInvoiceRefundScreenState();
 }
 
-class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
+class _SalesInvoiceRefundScreenState extends State<SalesInvoiceRefundScreen> {
   @override
   void initState() {
-    context.read<SalesInvoiceCubit>().fetchSalesInvoices();
+    context.read<SalesInvoiceRefundCubit>().fetchSalesInvoices();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<SalesInvoiceCubit, SalesInvoiceState>(
+    return BlocConsumer<SalesInvoiceRefundCubit, SalesInvoiceRefundState>(
       listener: (context, state) {
         if (state is SalesInvoiceError) {
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.wifi_off, size: 40, color: Colors.grey[400]),
-                const SizedBox(height: 16),
-                Text(
-                  "No internet connection",
-                  style: TextStyle(color: Colors.grey[400], fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Please check your connection",
-                  style: TextStyle(color: Colors.grey[500], fontSize: 14),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[700],
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  onPressed: () =>
-                      context.read<SalesInvoiceCubit>().fetchSalesInvoices(),
-                  child: const Text("Retry",
-                      style: TextStyle(color: Colors.white)),
-                )
-              ],
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.red,
             ),
           );
         }
@@ -65,7 +40,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
             state.productNames,
             state.customerNames,
           );
-          context.read<SalesInvoiceCubit>().resetSelectedInvoice();
+          context.read<SalesInvoiceRefundCubit>().resetSelectedInvoice();
         }
       },
       builder: (context, state) {
@@ -75,7 +50,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
             backgroundColor: Colors.black,
             scrolledUnderElevation: 0.0,
             title: const Text(
-              'Sales Invoices',
+              'Refund Invoices',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
@@ -85,18 +60,17 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
             centerTitle: false,
             iconTheme: const IconThemeData(color: Colors.white),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.add),
-                color: Colors.white,
-                tooltip: 'Create New Invoice',
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const SalesInvoiceScreencreate(),
-                    ),
-                  );
-                },
-              ),
+              if (state is SalesInvoiceLoaded &&
+                  state.failedCustomerRequests.isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: () {
+                    context
+                        .read<SalesInvoiceRefundCubit>()
+                        .retryFailedCustomerRequests();
+                  },
+                  tooltip: 'Retry failed customer requests',
+                ),
               const SizedBox(width: 8),
             ],
           ),
@@ -106,26 +80,54 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
     );
   }
 
-  Widget _buildBody(BuildContext context, SalesInvoiceState state) {
+  Widget _buildBody(BuildContext context, SalesInvoiceRefundState state) {
     if (state is SalesInvoiceLoading) {
       return const Center(
         child: CircularProgressIndicator(color: Colors.white),
       );
     } else if (state is SalesInvoiceError) {
       return Center(
-        child: Text(
-          state.message,
-          style: const TextStyle(color: Colors.redAccent),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 40, color: Colors.red[400]),
+            const SizedBox(height: 16),
+            Text(
+              "Error loading data",
+              style: TextStyle(color: Colors.grey[400], fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              state.message,
+              style: TextStyle(color: Colors.grey[500], fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            if (state.isRecoverable)
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue[700],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () => context
+                    .read<SalesInvoiceRefundCubit>()
+                    .fetchSalesInvoices(),
+                child:
+                    const Text("Retry", style: TextStyle(color: Colors.white)),
+              )
+          ],
         ),
       );
     } else if (state is SalesInvoiceLoadingById ||
         state is SalesInvoiceLoaded) {
       final invoices = (state is SalesInvoiceLoaded)
           ? state.filteredInvoices
-          : (state as SalesInvoiceLoadingById).previousState
-                  is SalesInvoiceLoaded
-              ? (state.previousState as SalesInvoiceLoaded).filteredInvoices
-              : [];
+          : (state as SalesInvoiceLoadingById)
+                  .previousState
+                  ?.filteredInvoices ??
+              [];
 
       return Stack(
         children: [
@@ -152,7 +154,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                   ),
                   onChanged: (query) {
                     context
-                        .read<SalesInvoiceCubit>()
+                        .read<SalesInvoiceRefundCubit>()
                         .searchSalesInvoices(query);
                   },
                 ),
@@ -161,14 +163,14 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                 child: invoices.isEmpty
                     ? Center(
                         child: Text(
-                          'No sales invoices found',
+                          'No refund invoices found',
                           style: TextStyle(color: Colors.grey[400]),
                         ),
                       )
                     : RefreshIndicator(
                         onRefresh: () async {
                           await context
-                              .read<SalesInvoiceCubit>()
+                              .read<SalesInvoiceRefundCubit>()
                               .fetchSalesInvoices();
                         },
                         child: ListView.separated(
@@ -177,7 +179,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                           separatorBuilder: (context, index) => const Gap(8),
                           itemBuilder: (context, index) {
                             final invoice = invoices[index];
-                            return _SalesInvoiceCard(invoice: invoice);
+                            return _RefundInvoiceCard(invoice: invoice);
                           },
                         ),
                       ),
@@ -185,7 +187,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
             ],
           ),
           if (state is SalesInvoiceLoadingById)
-            const ModernLoadingOverlay(msg: "Invoice"),
+            const ModernLoadingOverlay(msg: "Loading invoice details"),
         ],
       );
     }
@@ -199,7 +201,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
 
   void _showInvoiceDetailsPopup(
     BuildContext context,
-    SalesInvoice invoice,
+    SalesInvoiceRefund invoice,
     Map<int, String> productNames,
     Map<int, String> customerNames,
   ) {
@@ -208,8 +210,9 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
 
     OrientationAwareDialog.show(
       context: context,
-      title: 'Invoice #${invoice.invoiceId}',
-      subtitle: 'Customer: ${customerNames[invoice.customerID]}',
+      title: 'Refund Invoice #${invoice.refundInvoiceId}',
+      subtitle:
+          'Customer: ${customerNames[invoice.customerID] ?? 'Customer ${invoice.customerID}'}',
       statusWidget: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
@@ -243,8 +246,8 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
     );
   }
 
-  Widget _buildItemsTab(
-      SalesInvoice invoice, Map<int, String> productNames, bool isLandscape) {
+  Widget _buildItemsTab(SalesInvoiceRefund invoice,
+      Map<int, String> productNames, bool isLandscape) {
     final items = invoice.invoiceItems ?? [];
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -258,15 +261,16 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
           ),
           child: Column(
             children: [
+              _buildSummaryRow('Notes', invoice.notes ?? 'No notes provided'),
+              const Divider(color: Colors.grey),
               _buildSummaryRow(
                   'Subtotal', '\$${invoice.total.toStringAsFixed(2)}'),
-              _buildSummaryRow('Tax', '\$${invoice.tax.toStringAsFixed(2)}'),
               _buildSummaryRow(
                   'Discount', '\$${invoice.discount.toStringAsFixed(2)}'),
               const Divider(color: Colors.grey),
               _buildSummaryRow(
                 'Total',
-                '\$${(invoice.total + invoice.tax - invoice.discount).toStringAsFixed(2)}',
+                '\$${(invoice.total - invoice.discount).toStringAsFixed(2)}',
                 isBold: true,
               ),
             ],
@@ -330,76 +334,85 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
     );
   }
 
-  Widget _buildPaymentsTab(SalesInvoice invoice, bool isLandscape) {
+  Widget _buildPaymentsTab(SalesInvoiceRefund invoice, bool isLandscape) {
     final payments = invoice.clientPayments ?? [];
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 16),
-          itemCount: payments.length,
-          separatorBuilder: (context, index) => const Gap(8),
-          itemBuilder: (context, index) {
-            final payment = payments[index];
-            return Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[800],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.payment, color: Colors.green),
-                  const Gap(12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+        if (payments.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'No payments recorded for this refund',
+              style: TextStyle(color: Colors.grey[400]),
+            ),
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 16),
+            itemCount: payments.length,
+            separatorBuilder: (context, index) => const Gap(8),
+            itemBuilder: (context, index) {
+              final payment = payments[index];
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[800],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.payment, color: Colors.green),
+                    const Gap(12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Payment #${payment.id}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const Gap(4),
+                          Text(
+                            payment.paymentMethod,
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          'Payment #${payment.id}',
+                          '\$${payment.amount.toStringAsFixed(2)}',
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                         const Gap(4),
                         Text(
-                          payment.paymentMethod,
+                          payment.createdDate.toString().split(' ')[0],
                           style: TextStyle(
                             color: Colors.grey[400],
-                            fontSize: 13,
+                            fontSize: 12,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '\$${payment.amount.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Gap(4),
-                      Text(
-                        payment.createdDate.toString().split(' ')[0],
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+                  ],
+                ),
+              );
+            },
+          ),
       ],
     );
   }
@@ -445,18 +458,18 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
   }
 }
 
-class _SalesInvoiceCard extends StatelessWidget {
-  final SalesInvoice invoice;
+class _RefundInvoiceCard extends StatelessWidget {
+  final SalesInvoiceRefund invoice;
 
-  const _SalesInvoiceCard({required this.invoice});
+  const _RefundInvoiceCard({required this.invoice});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
         context
-            .read<SalesInvoiceCubit>()
-            .fetchSalesInvoiceById(invoice.invoiceId);
+            .read<SalesInvoiceRefundCubit>()
+            .fetchSalesInvoiceById(invoice.refundInvoiceId);
       },
       child: Container(
         decoration: BoxDecoration(
@@ -472,7 +485,7 @@ class _SalesInvoiceCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'INV-${invoice.invoiceId}',
+                  'REF-${invoice.refundInvoiceId}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -489,7 +502,7 @@ class _SalesInvoiceCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    invoice.paymentStatus.toUpperCase(),
+                    (invoice.paymentStatus).toUpperCase(),
                     style: TextStyle(
                       color: _getStatusTextColor(invoice.paymentStatus),
                       fontWeight: FontWeight.bold,
@@ -505,12 +518,14 @@ class _SalesInvoiceCard extends StatelessWidget {
                 Icon(Icons.calendar_today, size: 16, color: Colors.grey[400]),
                 const Gap(4),
                 Text(
-                  invoice.invoiceDate.toString().split(' ')[0],
+                  (invoice.invoiceDate)
+                      .toString()
+                      .split(' ')[0],
                   style: TextStyle(color: Colors.grey[400], fontSize: 13),
                 ),
                 const Spacer(),
                 Text(
-                  '\$${invoice.total.toStringAsFixed(2)}',
+                  '\$${(invoice.total).toStringAsFixed(2)}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -519,6 +534,15 @@ class _SalesInvoiceCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (invoice.notes != null && invoice.notes!.isNotEmpty) ...[
+              const Gap(8),
+              Text(
+                'Notes: ${invoice.notes}',
+                style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ],
         ),
       ),

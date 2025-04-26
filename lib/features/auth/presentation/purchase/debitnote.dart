@@ -44,6 +44,38 @@ class _DebitNoteScreenState extends State<DebitNoteScreen> {
                 state.productNames, state.supplierNames);
             context.read<DebitnoteCubit>().resetSelectedInvoice();
           }
+          if(state is DebitnoteCubitError) {
+            Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.wifi_off, size: 40, color: Colors.grey[400]),
+                          const SizedBox(height: 16),
+                          Text(
+                            "No internet connection",
+                            style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Please check your connection",
+                            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[700],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                            ),
+                            ),
+                            onPressed: () => context.read<DebitnoteCubit>().fetchDebitnoteCubits(),
+                            child: const Text("Retry", style: TextStyle(color: Colors.white)),
+                          
+                          )
+                        ],
+                      ),
+                    );
+          }
         },
         builder: (context, state) {
           return _buildBody(context, state);
@@ -57,12 +89,36 @@ class _DebitNoteScreenState extends State<DebitNoteScreen> {
       return const Center(
           child: CircularProgressIndicator(color: Colors.white));
     } else if (state is DebitnoteCubitError) {
-      return Center(
-        child: Text(
-          state.message,
-          style: const TextStyle(color: Colors.redAccent),
-        ),
-      );
+      return  Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.wifi_off, size: 40, color: Colors.grey[400]),
+                          const SizedBox(height: 16),
+                          Text(
+                            "No internet connection",
+                            style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Please check your connection",
+                            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[700],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                            ),
+                            ),
+                            onPressed: () => context.read<DebitnoteCubit>().fetchDebitnoteCubits(),
+                            child: const Text("Retry", style: TextStyle(color: Colors.white)),
+                          
+                          )
+                        ],
+                      ),
+                    );
     } else if (state is DebitnoteCubitLoadingById ||
         state is DebitnoteCubitLoaded) {
       final debitNotes = (state is DebitnoteCubitLoaded)

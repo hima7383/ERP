@@ -28,9 +28,36 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
     return BlocConsumer<PurchaseInvoiceCubit, PurchaseInvoiceState>(
       listener: (context, state) {
         if (state is PurchaseInvoiceError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+           Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.wifi_off, size: 40, color: Colors.grey[400]),
+                          const SizedBox(height: 16),
+                          Text(
+                            "No internet connection",
+                            style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Please check your connection",
+                            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[700],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                            ),
+                            ),
+                            onPressed: () => context.read<PurchaseInvoiceCubit>().fetchPurchaseInvoices(),
+                            child: const Text("Retry", style: TextStyle(color: Colors.white)),
+                          
+                          )
+                        ],
+                      ),
+                    );
         }
         if (state is PurchaseInvoiceLoaded && state.selectedInvoice != null) {
           _showInvoiceDetailsPopup(context, state.selectedInvoice!,
@@ -66,12 +93,36 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
       return const Center(
           child: CircularProgressIndicator(color: Colors.white));
     } else if (state is PurchaseInvoiceError) {
-      return Center(
-        child: Text(
-          state.message,
-          style: const TextStyle(color: Colors.redAccent),
-        ),
-      );
+      return  Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.wifi_off, size: 40, color: Colors.grey[400]),
+                          const SizedBox(height: 16),
+                          Text(
+                            "No internet connection",
+                            style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Please check your connection",
+                            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[700],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                            ),
+                            ),
+                            onPressed: () => context.read<PurchaseInvoiceCubit>().fetchPurchaseInvoices(),
+                            child: const Text("Retry", style: TextStyle(color: Colors.white)),
+                          
+                          )
+                        ],
+                      ),
+                    );
     } else if (state is PurchaseInvoiceLoadingById ||
         state is PurchaseInvoiceLoaded) {
       final invoices = (state is PurchaseInvoiceLoaded)

@@ -33,9 +33,36 @@ class _BankAccountScreenState extends State<BankAccountScreen>
     return BlocConsumer<BankAccountCubit, BankAccountState>(
       listener: (context, state) {
         if (state is BankAccountError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+          Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.wifi_off, size: 40, color: Colors.grey[400]),
+                          const SizedBox(height: 16),
+                          Text(
+                            "No internet connection",
+                            style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Please check your connection",
+                            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[700],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                            ),
+                            ),
+                            onPressed: () => context.read<BankAccountCubit>().fetchBankAccounts(),
+                            child: const Text("Retry", style: TextStyle(color: Colors.white)),
+                          
+                          )
+                        ],
+                      ),
+                    );
         }
         if (state is BankAccountListLoaded &&
             state.selectedBankAccount != null) {
@@ -78,12 +105,36 @@ class _BankAccountScreenState extends State<BankAccountScreen>
         child: CircularProgressIndicator(color: Colors.white),
       );
     } else if (state is BankAccountError) {
-      return Center(
-        child: Text(
-          state.message,
-          style: const TextStyle(color: Colors.redAccent),
-        ),
-      );
+      return  Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.wifi_off, size: 40, color: Colors.grey[400]),
+                          const SizedBox(height: 16),
+                          Text(
+                            "No internet connection",
+                            style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Please check your connection",
+                            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[700],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                            ),
+                            ),
+                            onPressed: () => context.read<BankAccountCubit>().fetchBankAccounts(),
+                            child: const Text("Retry", style: TextStyle(color: Colors.white)),
+                          
+                          )
+                        ],
+                      ),
+                    );
     } else if (state is BankAccountLoadingById ||
         state is BankAccountListLoaded) {
       final accounts = (state is BankAccountListLoaded)
