@@ -51,8 +51,7 @@ A comprehensive ERP application built with Flutter to manage various company mod
 
 1.  **Clone the repository:**
     ```bash
-    git clone <your-repository-url>
-    cd <your-project-directory>
+    git clone <https://github.com/hima7383/ERP.git>
     ```
 2.  **Install dependencies:**
     ```bash
