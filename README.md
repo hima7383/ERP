@@ -34,10 +34,8 @@ A comprehensive ERP application built with Flutter to manage various company mod
 ## Technology Stack
 
 *   **Flutter & Dart**: For cross-platform mobile application development.
-*   **(Potentially) Bloc/Cubit**: For state management (inferred from file contents).
-*   **(Potentially) http package**: For making API calls.
-*   *(Please add any other relevant technologies or key packages used)*
-
+*   **Cubit**: For state management.
+    
 ## Getting Started
 
 ### Prerequisites
