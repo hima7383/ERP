@@ -66,4 +66,4 @@ A comprehensive ERP application built with Flutter to manage various company mod
     ```bash
     flutter run
     ```
-    *(Are there any specific configurations needed before running, like setting up environment variables or a backend endpoint?)*
+    
